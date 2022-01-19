@@ -1,0 +1,11 @@
+[workspace]
+members = [
+    "src/common",
+    "src/cli-crusty",
+    "src/heapstore",
+    "src/memstore",
+    "src/server",
+    "src/txn_manager",
+    "src/optimizer",
+    "src/queryexe",
+]

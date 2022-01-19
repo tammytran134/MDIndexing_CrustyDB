@@ -1,0 +1,22 @@
+[package]
+name = "memstore"
+version = "0.1.0"
+authors = ["Aaron Elmore <aelmore@cs.uchicago.edu>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+doctest = false
+
+
+[dependencies]
+log = "0.4.11"
+env_logger = "0.7.1"
+common = { path = "../common" }
+serde = { version = "1.0.89", features = ["derive"] }
+serde_cbor = "0.11.1"
+csv="1.1"
+
+[dev-dependencies]
+rand = "0.8"

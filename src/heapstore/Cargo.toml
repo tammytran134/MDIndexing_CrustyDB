@@ -1,0 +1,39 @@
+[package]
+name = "heapstore"
+version = "0.1.0"
+authors = [
+    "Aaron Elmore <aelmore@cs.uchicago.edu>",
+    "Raul Castro Fernandez <raulcf@uchicago.edu>",
+    "Daisy Barbanel", "Noah Banholzer",
+    "William Ma <williamma@uchicago.edu>"]
+edition = "2021"
+
+[features]
+default = ["profile"]
+profile = []
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+doctest = false
+
+
+[dependencies]
+log = "0.4.11"
+env_logger = "0.7.1"
+common = { path = "../common" }
+txn_manager = { path ="../txn_manager"}
+serde = { version = "1", features = ["derive"] }
+serde_cbor = "0.11.1"
+temp_testdir = "0.2.3"
+rand = "0.8"
+csv="1.1"
+
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "heap_bench"
+harness = false
+
