@@ -9,7 +9,7 @@ This milestone will have more guidance than later milestones, so for much of thi
 
 ## Scoring and Requirements
 
-80% of your score on this milestone is based on correctness that is demonstrated by passing all of the provided unit and integration tests in the HS package. This means when running `cargo test -p heapstore hs_page` all tests pass. 10% of your score is based on code quality (following good coding conventions, comments, well organized functions, etc). 10% is based on your write up (my-pg.txt). The write up should contain:
+70% of your score on this milestone is based on correctness that is demonstrated by passing all of the provided unit and integration tests in the HS package. This means when locally running `cargo test -p heapstore hs_page` all tests pass. 10% of the score is reserved for hidden tests that we run to check correctness. 10% of your score is based on code quality (following good coding conventions, comments, well organized functions, etc). 10% is based on your write up (my-pg.txt). The write up should contain:
  -  A brief describe of your solution, in particular what design decisions you took and why. This is only needed for part of your solutions that had some significant work (e.g. just returning a counter or a pass through function has no design decision).
 - How long you roughly spent on the milestone, and what would have liked/disliked on the milestone.
 - If you know some part of the milestone is incomplete, write up what parts are not working, how close you think you are, and what part(s) you got stuck on.
@@ -61,6 +61,8 @@ With new working, move onto add_value. This should enable `hs_page_simple_insert
 After, implement get_value and verify that `hs_page_get_value` passes.
 At this point tests `hs_page_header_size_small`, `hs_page_header_size_full` and `hs_page_no_space` should also work.
 
+Note there is no fill factor when considering wether to accept an add value. If there is enough free space on the page, it must accept the add.
+
 #### Delete
 Next implement the function `delete_value` which should free up the bytes previously used by the slot_id and also make the slot_id available for the next insert/add. Start with the test `hs_page_simple_delete` which only verifies that deleted values are gone. Once this is working you will want to make sure that you are reusing the space/slots. I would suggest writing a utility function that lets you find the first free space in a page and test this function with `hs_page_get_first_free_space` which needs to be written. Here you might want to explore inserting bytes vectors of different sizes and see if you can replace/reuse the space as effectively as possible (e.g., two `_b2`'s should replace one deleted `_b1`).  You should have `hs_page_delete_insert` working also at this point.
 
@@ -71,3 +73,42 @@ Next write the methods to create the byte vector from a page (`get_bytes`) and t
 The last component of the page is writing an iterator to 'walk' through all valid values stored in a page. This is a consuming iterator which will move/take ownership of the page. You will want to fill in the struct `PageIter` to hold the metadata for the iterator, the `next` function in the `impl Iterator for PageIter`, and `into_iter` in `impl IntoIterator for Page` that creates the iterator from a page. With these functions `hs_page_iter` should pass.
 
 After completing the iterator all required functionality in the page should be complete and you can run all the tests in the file by running `cargo test -p heapstore hs_page_` Ensure that you did not break any tests! Congrats! 
+
+
+## Space Use/Reclamation Example
+
+Deleted space should be used again by the page, but there is no requirement as to when. In other words you should never decline an add_value when the free space does exist on the page.
+
+Imagine we have a page with the following "free spaces" (with a stored value possibly requiring more than one "space") Repeating letters are store values and - indicates a free space.
+
+We have a value AA, a value B, and a value CC, and 3 free spaces (-). SlotIds of AA,B, and CC are 0,1,2.
+
+```
+AABCC---
+```
+
+We delete B
+
+```
+AA-CC---
+```
+
+When inserting D, we could use a - between A & C [`AADCC---`] or a - after CCC [`AA-CCD--`]. We go with the later. The slotId of D should be 1 either way (re-using B's SlotId).
+
+```
+AA-CCD--
+```
+
+Inserting EE has only one viable spot/space.  The slotId of EE should be 3.
+
+```
+AA-CCDEE
+```
+
+Inserting FF should reject (return None) as it's too large. No slotId.
+
+Inserting G must be accepted as there is room. We cannot leave a 'zombie' space to never be reclaimed. The slotId of G should be 4.
+
+```
+AAGCCDEE
+```

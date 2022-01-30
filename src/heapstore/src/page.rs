@@ -34,7 +34,7 @@ impl Page {
     /// Note that where the bytes are stored in the page does not matter (heap), but it
     /// should not change the slotId for any existing value. This means that
     /// bytes in the page may not follow the slot order.
-    /// If a slot is deleted you can replace the slotId.
+    /// If a slot is deleted you should replace the slotId on the next insert.
     ///
     /// HINT: You can copy/clone bytes into a slice using the following function.
     /// They must have the same size.
@@ -50,6 +50,8 @@ impl Page {
     }
 
     /// Delete the bytes/slot for the slotId. If the slotId is not valid then return None
+    /// The slotId for a deleted slot should be assigned to the next added value
+    /// The space for the value should be free to use for a later added value.
     /// HINT: Return Some(()) for a valid delete
     pub fn delete_value(&mut self, slot_id: SlotId) -> Option<()> {
         panic!("TODO milestone pg");
