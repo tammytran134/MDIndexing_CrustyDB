@@ -3,6 +3,7 @@ use common::PAGE_SIZE;
 use std::convert::TryInto;
 use std::mem::{size_of, size_of_val};
 use std::cmp::{max};
+use std::collections::HashMap;
 
 pub type ValAddr = u16;
 
@@ -14,15 +15,21 @@ pub type ValAddr = u16;
 /// You do not need reclaim header information for a value inserted (eg 6 bytes per value ever inserted)
 /// The rest must filled as much as possible to hold values.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub struct Slot {
+pub struct HashSlot {
+    start: ValAddr,
+    end: ValAddr
+}
+
+pub struct VecSlot {
     start: ValAddr,
     slot_id: SlotId,
     end: ValAddr
 }
 pub struct Header {
     page_id: PageId,
-    //num_rec: u16,
-    slot_arr: Vec<Slot>,
+    num_slot: u16,
+    //slot_arr: Vec<Slot>,
+    slot_arr: HashMap<SlotId, HashSlot>,
 }
 
 pub(crate) struct Page {
@@ -38,8 +45,9 @@ impl Page {
     pub fn new(page_id: PageId) -> Self {
         let new_header = Header {
             page_id: page_id,
-            //num_rec: 0,
-            slot_arr: Vec::new(),
+            num_slot: 0,
+            //slot_arr: Vec::new(),
+            slot_arr: HashMap::new(),
         };
         return Page{header: new_header, data: [0; PAGE_SIZE]};
     }
@@ -49,20 +57,29 @@ impl Page {
         self.header.page_id
     }
 
-    pub fn get_slot_size(&self, slot: &Slot) -> usize {
+    pub fn get_slot_size(&self, slot: &VecSlot) -> usize {
         usize::from(slot.end - slot.start)
     }
 
+    pub fn hash_to_vec_slot(&self) -> Vec<VecSlot> {
+        let mut vec_slot = Vec::new();
+        for (slot_id, hash_slot) in &self.header.slot_arr {
+            vec_slot.push(VecSlot {start: hash_slot.start, slot_id: *slot_id, end: hash_slot.end});
+        }
+        return vec_slot;
+    }
 
     pub fn get_first_free_space(&self, data_size: usize) -> Option<ValAddr> {
         let num_slot = self.header.slot_arr.len();
         if num_slot == 0 {
-            return Some((PAGE_SIZE - self.get_header_size()).try_into().unwrap());
+            return Some(u16::try_from(PAGE_SIZE - data_size).unwrap());
         }
         let mut total_size: usize = 0;
         let mut res = None;
-        let mut slot_arr = self.header.slot_arr.clone();
-        slot_arr.sort_unstable();
+        //let mut slot_arr = self.header.slot_arr.clone(); 
+        let mut slot_arr = self.hash_to_vec_slot();
+        //slot_arr.sort_unstable();
+        slot_arr.sort_unstable_by(|a, b| a.start.cmp(&b.start));
         for i in 0..(num_slot - 1) {
             let slot_size = self.get_slot_size(&slot_arr[i]);
             total_size += slot_size;
@@ -84,7 +101,8 @@ impl Page {
     }
 
     pub fn generate_slot_id(&self) -> SlotId {
-        let mut slot_arr = self.header.slot_arr.clone();
+        //let mut slot_arr = self.header.slot_arr.clone();
+        let mut slot_arr = self.hash_to_vec_slot();
         slot_arr.sort_unstable_by(|a, b| a.slot_id.cmp(&b.slot_id));
         let mut slot_id = 0;
         for single_slot in slot_arr {
@@ -119,19 +137,25 @@ impl Page {
         }
         let new_slot_id = self.generate_slot_id();
         let end_offset = start_offset + u16::try_from(data_size).unwrap();
-        self.header.slot_arr.push(Slot {start: start_offset, slot_id: new_slot_id, end: end_offset});
+        //self.header.slot_arr.push(Slot {start: start_offset, slot_id: new_slot_id, end: end_offset});
+        self.header.slot_arr.insert(new_slot_id, HashSlot {start: start_offset, end: end_offset});
         self.data[start_offset.try_into().unwrap()..end_offset.try_into().unwrap()].clone_from_slice(&bytes);
+        self.header.num_slot += 1;
         return Some(new_slot_id);
     }
 
     /// Return the bytes for the slotId. If the slotId is not valid then return None
     pub fn get_value(&self, slot_id: SlotId) -> Option<Vec<u8>> {
-        for single_slot in &self.header.slot_arr {
-            if single_slot.slot_id == slot_id {
-                return Some(self.data[single_slot.start.try_into().unwrap()..single_slot.end.try_into().unwrap()].to_vec());
-            }
+        // for single_slot in &self.header.slot_arr {
+        //     if single_slot.slot_id == slot_id {
+        //         return Some(self.data[single_slot.start.try_into().unwrap()..single_slot.end.try_into().unwrap()].to_vec());
+        //     }
+        // }
+        match &self.header.slot_arr.get(&slot_id) {
+            Some(hash_slot) => {return Some(self.data[hash_slot.start.try_into().unwrap()..hash_slot.end.try_into().unwrap()].to_vec());},
+            None => return None,
         }
-        return None;
+        //return None;
     }
 
     /// Delete the bytes/slot for the slotId. If the slotId is not valid then return None
@@ -139,7 +163,10 @@ impl Page {
     /// The space for the value should be free to use for a later added value.
     /// HINT: Return Some(()) for a valid delete
     pub fn delete_value(&mut self, slot_id: SlotId) -> Option<()> {
-        panic!("TODO milestone pg");
+        match &self.header.slot_arr.remove(&slot_id) {
+            Some(_) => {self.header.num_slot += 1; return Some(())},
+            None => None,
+        }
     }
 
     /// Create a new page from the byte array.
@@ -148,7 +175,27 @@ impl Page {
     /// (the example is for a u16 type and the data store in little endian)
     /// u16::from_le_bytes(data[X..Y].try_into().unwrap());
     pub fn from_bytes(data: &[u8]) -> Self {
-        panic!("TODO milestone pg");
+        let mut curr_start = 0;
+        let page_id = u16::from_be_bytes(data[curr_start..(curr_start+2)].try_into().unwrap());
+        let mut page = Page::new(page_id);
+        curr_start += 2;
+        let mut num_slot = u16::from_be_bytes(data[curr_start..(curr_start+2)].try_into().unwrap());
+        curr_start += 2;
+        page.header.num_slot = num_slot;
+        while num_slot > 0 {
+            let slot_id = u16::from_be_bytes(data[curr_start..(curr_start+2)].try_into().unwrap());
+            curr_start += 2;
+            let slot_start = u16::from_be_bytes(data[curr_start..(curr_start+2)].try_into().unwrap());
+            curr_start += 2;
+            let slot_end = u16::from_be_bytes(data[curr_start..(curr_start+2)].try_into().unwrap());
+            curr_start += 2;
+            let slot_data = &data[curr_start..(curr_start+usize::from(slot_end-slot_start))];
+            page.header.slot_arr.insert(slot_id, HashSlot {start: slot_start, end: slot_end});
+            page.data[slot_start.try_into().unwrap()..slot_end.try_into().unwrap()].clone_from_slice(&slot_data);
+            curr_start += usize::from(slot_end-slot_start);
+            num_slot -= 1;
+        }
+        return page;
     }
 
     /// Convert a page into bytes. This must be same size as PAGE_SIZE.
@@ -157,7 +204,23 @@ impl Page {
     /// HINT: To convert a vec of bytes using little endian, use
     /// to_le_bytes().to_vec()
     pub fn get_bytes(&self) -> Vec<u8> {
-        panic!("TODO milestone pg");
+        let mut res = vec![0; PAGE_SIZE];
+        let mut curr_start = 0;
+        res[curr_start..(curr_start+2)].clone_from_slice(&self.header.page_id.to_be_bytes());
+        curr_start += 2;
+        res[curr_start..(curr_start+2)].clone_from_slice(&self.header.num_slot.to_be_bytes());
+        curr_start += 2;
+        for (slot_id, hash_slot) in &self.header.slot_arr {
+            res[curr_start..(curr_start+2)].clone_from_slice(&slot_id.to_be_bytes());
+            curr_start += 2;
+            res[curr_start..(curr_start+2)].clone_from_slice(&hash_slot.start.to_be_bytes());
+            curr_start += 2;
+            res[curr_start..(curr_start+2)].clone_from_slice(&hash_slot.end.to_be_bytes());
+            curr_start += 2;            
+            res[curr_start..(curr_start + usize::from(hash_slot.end-hash_slot.start))].clone_from_slice(&self.data[usize::from(hash_slot.start)..usize::from(hash_slot.end)]);
+            curr_start += usize::from(hash_slot.end-hash_slot.start);
+        }
+        return res;        
     }
 
     /// A utility function to determine the size of the header in the page
@@ -165,8 +228,13 @@ impl Page {
     /// Will be used by tests. Optional for you to use in your code
     #[allow(dead_code)]
     pub(crate) fn get_header_size(&self) -> usize {
-        //size_of_val(&self.header.page_id) + size_of_val(&self.header.slot_arr)
-        size_of_val(&self.header)
+        let mut header_size = size_of_val(&self.header.page_id) + size_of_val(&self.header.num_slot);
+        for (slot_id, hash_slot) in &self.header.slot_arr {
+            header_size += size_of_val(&*slot_id);
+            header_size += size_of_val(&hash_slot.start);
+            header_size += size_of_val(&hash_slot.end);
+        }
+        return header_size;
     }
 
     /// A utility function to determine the largest block of free space in the page.
@@ -177,9 +245,9 @@ impl Page {
         if num_slot == 0 {
             return PAGE_SIZE - self.get_header_size();
         }
-        let mut slot_arr = self.header.slot_arr.clone();
-        let mut res = PAGE_SIZE - self.get_header_size() - usize::from(slot_arr[0].start);
-        slot_arr.sort_unstable();
+        let mut slot_arr = self.hash_to_vec_slot();
+        slot_arr.sort_unstable_by(|a, b| a.start.cmp(&b.start));
+        let mut res = PAGE_SIZE - self.get_header_size() - (PAGE_SIZE - usize::from(slot_arr[0].start));
         for i in 0..(num_slot-1) {
             res = max(res, (slot_arr[i+1].start - slot_arr[i].end).into());
         }
@@ -192,15 +260,23 @@ impl Page {
 /// See https://stackoverflow.com/questions/30218886/how-to-implement-iterator-and-intoiterator-for-a-simple-struct
 pub struct PageIter {
     //TODO milestone pg
-     
+    slot_vec: Vec<VecSlot>,
+    data: [u8; PAGE_SIZE],
+    index: usize,
 }
 
 /// The implementation of the (consuming) page iterator.
 impl Iterator for PageIter {
     type Item = Vec<u8>;
-
     fn next(&mut self) -> Option<Self::Item> {
-        panic!("TODO milestone pg");
+        let mut res: Vec<u8> = Vec::new();
+        let slot = &self.slot_vec.get(self.index);
+        self.index += 1;
+        match slot {
+            Some(vec_slot) => {res = vec![0; (vec_slot.end - vec_slot.start).try_into().unwrap()];
+                res[0..usize::from(vec_slot.end - vec_slot.start)].clone_from_slice(&self.data[usize::from(vec_slot.start)..usize::from(vec_slot.end)]); return Some(res);},
+            None => {return None},
+        }
     }
 }
 
@@ -212,7 +288,10 @@ impl IntoIterator for Page {
     type IntoIter = PageIter;
 
     fn into_iter(self) -> Self::IntoIter {
-        panic!("TODO milestone pg");
+        let mut slot_arr = self.hash_to_vec_slot();
+        slot_arr.sort_unstable_by(|a, b| a.slot_id.cmp(&b.slot_id));
+        let iter = PageIter {slot_vec: slot_arr, data: self.data, index: 0};
+        return iter;
     }
 }
 
@@ -246,12 +325,20 @@ mod tests {
         let tuple_bytes = serde_cbor::to_vec(&tuple).unwrap();
         let byte_len = tuple_bytes.len();
         assert_eq!(Some(0), p.add_value(&tuple_bytes));
+        //println!("Data size is {}", byte_len);
+        //println!("Header size is {}", p.get_header_size());
+        //println!("Slot 0 start is {}", &p.header.slot_arr[0].start);
+        //println!("{:?}", &p.header.slot_arr);
         assert_eq!(
             PAGE_SIZE - byte_len - p.get_header_size(),
             p.get_largest_free_contiguous_space()
         );
         let tuple_bytes2 = serde_cbor::to_vec(&tuple).unwrap();
         assert_eq!(Some(1), p.add_value(&tuple_bytes2));
+        // println!("Data size is {}", byte_len);
+        // println!("Header size is {}", p.get_header_size());
+        // println!("Slot 1 start is {}", &p.header.slot_arr[1].start);
+        // println!("{:?}", &p.header.slot_arr);
         assert_eq!(
             PAGE_SIZE - p.get_header_size() - byte_len - byte_len,
             p.get_largest_free_contiguous_space()
