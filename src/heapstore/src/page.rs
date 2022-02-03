@@ -69,17 +69,33 @@ impl Page {
         return vec_slot;
     }
 
-    pub fn get_first_free_space(&self, data_size: usize) -> Option<ValAddr> {
+    pub fn fix_fragmentation(&mut self, data_size: usize) -> Option<ValAddr> {
+        let mut slot_arr = self.hash_to_vec_slot();
+        slot_arr.sort_unstable_by(|a, b| b.start.cmp(&a.start));
+        let mut curr_end = PAGE_SIZE;
+        for slot in slot_arr {
+            let slot_size = self.get_slot_size(&slot);
+            let mut slot_data = vec![0; slot_size];
+            slot_data[0..slot_size].clone_from_slice(&self.data[usize::from(slot.start)..usize::from(slot.end)]);
+            self.data[(curr_end - slot_size)..curr_end].clone_from_slice(&slot_data);
+            curr_end -= slot_size;
+        }
+        return Some((curr_end - data_size).try_into().unwrap());
+    }
+
+    pub fn get_first_free_space(&mut self, data_size: usize) -> Option<ValAddr> {
         let num_slot = self.header.slot_arr.len();
         if num_slot == 0 {
             return Some(u16::try_from(PAGE_SIZE - data_size).unwrap());
         }
         let mut total_size: usize = 0;
         let mut res = None;
-        //let mut slot_arr = self.header.slot_arr.clone(); 
         let mut slot_arr = self.hash_to_vec_slot();
-        //slot_arr.sort_unstable();
         slot_arr.sort_unstable_by(|a, b| a.start.cmp(&b.start));
+        if (usize::from(slot_arr[0].start) - self.get_header_size() - (size_of_val(&slot_arr[0].slot_id) +
+        size_of_val(&slot_arr[0].start) + size_of_val(&slot_arr[0].end))) >= data_size {
+            res = Some(slot_arr[0].start - u16::try_from(data_size).unwrap());
+        }
         for i in 0..(num_slot - 1) {
             let slot_size = self.get_slot_size(&slot_arr[i]);
             total_size += slot_size;
@@ -89,19 +105,20 @@ impl Page {
             }
         }
         total_size += self.get_slot_size(&slot_arr[num_slot-1]);
-        if (PAGE_SIZE - self.get_header_size() - total_size) < (data_size + size_of_val(&slot_arr[0])) {
+        if (PAGE_SIZE - self.get_header_size() - total_size) < (data_size + size_of_val(&slot_arr[0].slot_id) +
+                                                                            size_of_val(&slot_arr[0].start) +
+                                                                            size_of_val(&slot_arr[0].end)) {
             return None;
         }
         else {
             match res {
-                None => return Some(slot_arr[0].start - u16::try_from(data_size).unwrap()),
+                None => return self.fix_fragmentation(data_size), // DATA SHIFT
                 Some(x) => return Some(x),
             }           
         }
     }
 
     pub fn generate_slot_id(&self) -> SlotId {
-        //let mut slot_arr = self.header.slot_arr.clone();
         let mut slot_arr = self.hash_to_vec_slot();
         slot_arr.sort_unstable_by(|a, b| a.slot_id.cmp(&b.slot_id));
         let mut slot_id = 0;
@@ -146,16 +163,10 @@ impl Page {
 
     /// Return the bytes for the slotId. If the slotId is not valid then return None
     pub fn get_value(&self, slot_id: SlotId) -> Option<Vec<u8>> {
-        // for single_slot in &self.header.slot_arr {
-        //     if single_slot.slot_id == slot_id {
-        //         return Some(self.data[single_slot.start.try_into().unwrap()..single_slot.end.try_into().unwrap()].to_vec());
-        //     }
-        // }
         match &self.header.slot_arr.get(&slot_id) {
             Some(hash_slot) => {return Some(self.data[hash_slot.start.try_into().unwrap()..hash_slot.end.try_into().unwrap()].to_vec());},
             None => return None,
         }
-        //return None;
     }
 
     /// Delete the bytes/slot for the slotId. If the slotId is not valid then return None
