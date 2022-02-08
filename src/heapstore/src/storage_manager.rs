@@ -11,7 +11,6 @@ use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, RwLock};
 
-
 /// The StorageManager struct
 pub struct StorageManager {
     /// Path to database metadata files.
@@ -47,7 +46,6 @@ impl StorageManager {
     fn get_num_pages(&self, container_id: ContainerId) -> PageId {
         panic!("TODO milestone hs");
     }
-
 
     /// Test utility function for counting reads and writes served by the heap file.
     /// Can return 0,0 for invalid container_ids

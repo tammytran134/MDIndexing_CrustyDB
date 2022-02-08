@@ -12,7 +12,6 @@ use std::sync::Arc;
 /// HINT: This will need an Arc<HeapFile>
 pub struct HeapFileIterator {
     //TODO milestone hs
-     
 }
 
 /// Required HeapFileIterator functions
