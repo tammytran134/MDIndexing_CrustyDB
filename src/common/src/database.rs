@@ -7,7 +7,9 @@ use crate::table::*;
 use catalog::Catalog;
 use std::collections::HashMap;
 use std::sync::atomic::Ordering;
+use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
+use std::fs::File;
 
 /// The actual database.
 #[derive(Clone, Serialize, Deserialize)]
@@ -17,9 +19,9 @@ pub struct Database {
     // Requires RwLock on both map and tables to enable adding/removing tables as well as table mutability.
     // TODO: can likely remove RwLock on table because all modifications to Table solely occur within the HeapFile.
     /// Locks for the tables.
-    #[serde(skip)]
+    // #[serde(skip)]
     pub tables: Arc<RwLock<HashMap<ContainerId, Arc<RwLock<Table>>>>>,
-    #[serde(skip)]
+    // #[serde(skip)]
     pub named_containers: Arc<RwLock<HashMap<ContainerId, (String, StateType)>>>,
 }
 
@@ -35,6 +37,12 @@ impl Database {
             tables: Arc::new(RwLock::new(HashMap::new())),
             named_containers: Arc::new(RwLock::new(HashMap::new())),
         }
+    }
+
+    pub fn load(filename: PathBuf) -> Self {
+        debug!("Loading database from file {}", filename.display());
+        let reader = File::open(&filename).expect("error opening file");
+        serde_json::from_reader(reader).expect("error reading from json")
     }
 }
 
