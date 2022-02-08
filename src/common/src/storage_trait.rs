@@ -107,6 +107,16 @@ pub trait StorageTrait {
     fn clear_cache(&self);
 
     /// Call shutdown to persist state or clean up. Will be called by drop in addition to explicitly.
+    /// Shutdown also needs to persist the state of the storage trait to disk, allowing the storage
+    /// to retain state after the db is rerun. 
+    ///
+    /// This storage trait holds a mapping between containerIDs and underlying data store (HeapFile
+    /// for heapstore SM), so we need to be able to reconstruct that. You want to serialize enough
+    /// data to disk that would allow you to reconstruct what containerIDs were managed previously,
+    /// and what HeapFile objects did those containers point to.
+    ///
+    /// JSON serialization should be sufficient for this. The serialized data can be written within the
+    /// storage path passed in during instantiation. 
     fn shutdown(&self);
 
     fn import_csv(

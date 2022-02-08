@@ -7,12 +7,13 @@ use common::testutil::gen_random_dir;
 use common::PAGE_SIZE;
 use std::collections::HashMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, RwLock};
 
 
 /// The StorageManager struct
+#[derive(Serialize, Deserialize)]
 pub struct StorageManager {
     /// Path to database metadata files.
     pub storage_path: String,
@@ -125,18 +126,28 @@ impl StorageTrait for StorageManager {
         panic!("TODO milestone hs");
     }
 
-    /// Add a new container
+    /// Create a new container to be stored. 
+    /// fn create_container(&self, name: String) -> ContainerId;
+    /// Creates a new container object.
+    /// For this milestone you will not need to utilize 
+    /// the container_config, name, container_type, or dependencies
+    /// 
+    ///
+    /// # Arguments
+    ///
+    /// * `container_id` - Id of container to add delta to.
     fn create_container(
         &self,
         container_id: ContainerId,
         _container_config: common::ContainerConfig,
-        name: Option<String>,
+        _name: Option<String>,
         _container_type: common::ids::StateType,
-        dependencies: Option<Vec<ContainerId>>,
+        _dependencies: Option<Vec<ContainerId>>,
     ) -> Result<(), CrustyError> {
         panic!("TODO milestone hs");
     }
 
+    /// A wrapper function to call create container
     fn create_table(&self, container_id: ContainerId) -> Result<(), CrustyError> {
         self.create_container(
             container_id,
@@ -190,19 +201,69 @@ impl StorageTrait for StorageManager {
 
     /// Shutdown the storage manager. Can call drop. Should be safe to call multiple times.
     /// If temp, this should remove all stored files.
+    /// If not a temp SM, this should serialize the mapping between containerID and Heapfile. 
+    /// HINT: Heapfile won't be serializable/deserializable. You'll want to serialize information
+    /// that can be used to create a HeapFile object pointing to the same data. You don't need to
+    /// worry about recreating read_count or write_count.
     fn shutdown(&self) {
         panic!("TODO milestone hs");
     }
 
     fn import_csv(
         &self,
-        _table: &Table,
-        _path: String,
+        table: &Table,
+        path: String,
         _tid: TransactionId,
-        _container_id: ContainerId,
+        container_id: ContainerId,
         _timestamp: LogicalTimeStamp,
     ) -> Result<(), CrustyError> {
-        Err(CrustyError::CrustyError(String::from("TODO")))
+        // Convert path into an absolute path.
+        let path = fs::canonicalize(path)?;
+        debug!("server::csv_utils trying to open file, path: {:?}", path);
+        let file = fs::File::open(path)?;
+        // Create csv reader.
+        let mut rdr = csv::ReaderBuilder::new()
+            .has_headers(false)
+            .from_reader(file);
+
+        // Iterate through csv records.
+        let mut inserted_records = 0;
+        for result in rdr.records() {
+            #[allow(clippy::single_match)]
+            match result {
+                Ok(rec) => {
+                    // Build tuple and infer types from schema.
+                    let mut tuple = Tuple::new(Vec::new());
+                    for (field, attr) in rec.iter().zip(table.schema.attributes()) {
+                        // TODO: Type mismatch between attributes and record data>
+                        match &attr.dtype() {
+                            DataType::Int => {
+                                let value: i32 = field.parse::<i32>().unwrap();
+                                tuple.field_vals.push(Field::IntField(value));
+                            }
+                            DataType::String => {
+                                let value: String = field.to_string().clone();
+                                tuple.field_vals.push(Field::StringField(value));
+                            }
+                        }
+                    }
+                    //TODO: How should individual row insertion errors be handled?
+                    debug!(
+                        "server::csv_utils about to insert tuple into container_id: {:?}",
+                        &container_id
+                    );
+                    self.insert_value(container_id, tuple.get_bytes(), _tid);
+                    inserted_records += 1;
+                }
+                _ => {
+                    // FIXME: get error from csv reader
+                    error!("Could not read row from CSV");
+                    return Err(CrustyError::IOError("Could not read row from CSV".to_string()))
+                }
+            }
+        }
+        info!("Num records imported: {:?}", inserted_records);
+        Ok(())
     }
 }
 

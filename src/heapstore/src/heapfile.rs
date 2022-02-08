@@ -14,8 +14,16 @@ use std::io::{Seek, SeekFrom};
 ///
 /// HINT: You likely will want to design for interior mutability for concurrent accesses.
 /// eg Arc<RwLock<>> on some internal members
+///
+/// HINT: You will probably not be able to serialize HeapFile, as it needs to maintain a link to a
+/// File object, which cannot be serialized/deserialized/skipped by serde. You don't need to worry
+/// about persisting read_count/write_count during serialization. 
+///
+/// Your code should persist what information is needed to recreate the heapfile.
+///
 pub(crate) struct HeapFile {
-    // TODO milestone hs
+    // TODO milestone hs (add new fields)
+
     // The following are for profiling/ correctness checks
     pub read_count: AtomicU16,
     pub write_count: AtomicU16,
@@ -26,8 +34,27 @@ impl HeapFile {
     /// Create a new heapfile for the given path and container Id. Return Result<Self> if able to create.
     /// Errors could arise from permissions, space, etc when trying to create the file used by HeapFile.
     pub(crate) fn new(file_path: PathBuf) -> Result<Self, CrustyError> {
+        let file = match OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(&file_path)
+        {
+            Ok(f) => f,
+            Err(error) => {
+                return Err(CrustyError::CrustyError(format!(
+                    "Cannot open or create heap file: {} {} {:?}",
+                    file_path.to_string_lossy(),
+                    error.to_string(),
+                    error
+                )))
+            }
+        };
+
         // TODO milestone hs
+
         Ok(HeapFile {
+            // TODO milestone hs init your new field(s)
             read_count: AtomicU16::new(0),
             write_count: AtomicU16::new(0),
         })
