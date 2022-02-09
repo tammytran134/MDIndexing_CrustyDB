@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fs;
+use std::path::Path;
 use std::io::Read;
 use std::sync::{Arc, RwLock};
 
@@ -46,8 +47,33 @@ impl ServerState {
     ) -> Result<Self, CrustyError> {
         let sm_box = Box::new(StorageManager::new(storage_path.clone()));
         let sm: &'static StorageManager = Box::leak(sm_box);
+
+        // Create dirs if they do not exist.
+        fs::create_dir_all(&storage_path)?;
+        fs::create_dir_all(&metadata_path)?;
+
+        // Create databases
+        let mut db_map = HashMap::new();
+        debug!("Looking for databases in {}/databases", &storage_path);
+        let dbpath = format!("{}/databases/", &storage_path);
+        if Path::new(&dbpath).exists() {
+            let dbs = fs::read_dir(&dbpath).unwrap();
+            {
+                // for each path, create a DatabaseState
+                for db in dbs {
+                    let db = db.unwrap();
+                    let db_path = db.path();
+                    debug!("Creating DatabaseState from path {:?}", db_path);
+                    // let db_struct: Database = Database::load(db);
+                    let db_box = Box::new(DatabaseState::load(db_path, sm)?);
+                    let db_state: &'static DatabaseState = Box::leak(db_box);
+                    db_map.insert(db_state.id, db_state);
+                }
+            }
+        }
+
         let server_state = ServerState {
-            id_to_db: RwLock::new(HashMap::new()),
+            id_to_db: RwLock::new(db_map),
             active_connections: RwLock::new(HashMap::new()),
             /// Path to database metadata files.
             metadata_path,
@@ -57,31 +83,6 @@ impl ServerState {
             workers: Mutex::new(Vec::new()),
             storage_manager: sm,
         };
-
-        // Create dirs if they do not exist.
-        fs::create_dir_all(&server_state.storage_path)?;
-        fs::create_dir_all(&server_state.metadata_path)?;
-
-        // // Create databases
-        // debug!("Looking for databases in {}", &server_state.storage_path);
-        // let paths = fs::read_dir(&server_state.storage_path).unwrap();
-        // {
-        //     // for each path, create a DatabaseState
-        //     for entry in paths {
-        //         let path = entry.unwrap().path();
-        //         debug!("Creating DatabaseState from path {:?}", path);
-        //         let db_state = Arc::new(
-        //             DatabaseState::new_from_path(path, server_state.storage_path.clone()).unwrap(),
-        //         );
-        //         server_state
-        //             .id_to_db
-        //             .write()
-        //             .unwrap()
-        //             .insert(db_state.id, db_state);
-        //     }
-        // }
-        // // TODO: does this pattern to make mutable things immutable make sense?
-        // let server_state = server_state;
 
         Ok(server_state)
     }
@@ -100,8 +101,18 @@ impl ServerState {
     pub(crate) fn shutdown(&self) -> Result<(), CrustyError> {
         info!("Shutting down");
         debug!("Sending terminate message to all workers.");
-        let mut workers = self.workers.lock().unwrap();
+        let db_map = self.id_to_db.read().unwrap();
+        for (_id, dbstate) in db_map.iter() {
+            let name = &dbstate.name;
+            let filepath = format!("{}/databases", self.storage_path);
+            fs::create_dir_all(&filepath)?;
+            let filename = format!("{}/{}", filepath, name);
+            serde_json::to_writer(fs::File::create(filename).expect("error creating file"),
+                                  &dbstate.database)
+                .expect("error deserializing db");
+        }
 
+        let mut workers = self.workers.lock().unwrap();
         {
             //Send terminate to workers
             let task_queue = self.task_queue.lock().unwrap();
@@ -120,6 +131,8 @@ impl ServerState {
             }
         }
 
+        // call shutdown on SM to ensure stateful shutdown
+        self.storage_manager.shutdown();
         error!("TODO no one is shutting down daemon properly");
         //debug!("Shutting down daemon.");
         //if let Some(thread) = daemon_thread.thread.take() {

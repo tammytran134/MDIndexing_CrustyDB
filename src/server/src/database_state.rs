@@ -33,6 +33,7 @@ pub struct DatabaseState {
     #[serde(skip_serializing)]
     pub storage_manager: &'static StorageManager,
 
+    #[serde(skip_serializing)]
     // runtime information
     pub active_client_connections: RwLock<HashSet<u64>>,
 
@@ -98,6 +99,28 @@ impl DatabaseState {
             db_name, db_id
         );
         let database = Database::new(db_name.to_string());
+
+        let db_state = DatabaseState {
+            id: db_id,
+            name: db_name,
+            database,
+            storage_manager: sm,
+            active_client_connections: RwLock::new(HashSet::new()),
+            container_vec: Arc::new(RwLock::new(HashMap::new())),
+            atomic_time: AtomicU32::new(0),
+            query_registrar: QueryRegistrar::new(),
+        };
+        Ok(db_state)
+    }
+
+    pub fn load(filename: PathBuf, sm: &'static StorageManager) -> Result<Self, CrustyError> {
+        let database:Database = Database::load(filename);
+        let db_name: String = database.name.clone();
+        let db_id = DatabaseState::get_database_id(&db_name);
+        debug!(
+            "Loading DatabaseState; name: {} id: {}",
+            db_name, db_id
+        );
 
         let db_state = DatabaseState {
             id: db_id,

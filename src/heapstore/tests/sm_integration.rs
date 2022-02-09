@@ -79,3 +79,21 @@ fn sm_no_container() {
     let vals1 = get_random_vec_of_byte_vec(100, 50, 100);
     sm.insert_values(1, vals1, t);
 }
+
+#[test]
+fn sm_test_shutdown() {
+    let path = String::from("tmp");
+    let sm = StorageManager::new(path.clone());
+    let t = TransactionId::new();
+
+    let vals1 = get_random_vec_of_byte_vec(100, 50, 100);
+    let cid = 1;
+    sm.create_table(cid).unwrap();
+    let _val_ids = sm.insert_values(cid, vals1.clone(), t);
+    sm.shutdown();
+
+    let sm2 = StorageManager::new(path);
+    let check_vals: Vec<Vec<u8>> = sm2.get_iterator(cid, t, RO).collect();
+    assert!(compare_unordered_byte_vecs(&vals1, check_vals));
+    sm2.reset().unwrap();
+}
