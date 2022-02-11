@@ -23,6 +23,7 @@ pub struct HashSlot {
 /// a slot: its slot_id, its start field represents the start offset of where the data is held in
 /// the page's data array, and its end field represents the end offset of where
 /// the daa is held in the page's data array
+#[derive(Copy, Clone)]
 pub struct VecSlot {
     start: ValAddr,
     slot_id: SlotId,
@@ -33,9 +34,9 @@ pub struct VecSlot {
 /// number of slots/records the page currently has,
 /// and a hashmap of a value's slot id and its corresponding hash slot
 pub struct Header {
-    page_id: PageId,
-    num_slot: u16,
-    slot_arr: HashMap<SlotId, HashSlot>,
+    pub page_id: PageId,
+    pub num_slot: u16,
+    pub slot_arr: HashMap<SlotId, HashSlot>,
 }
 
 /// The struct for a page. Note this can hold more elements/meta data when created,
@@ -47,8 +48,8 @@ pub struct Header {
 /// The rest must filled as much as possible to hold values.
 pub(crate) struct Page {
     /// The data for data
-    header: Header,
-    data: [u8; PAGE_SIZE],
+    pub header: Header,
+    pub data: [u8; PAGE_SIZE],
 }
 
 /// The functions required for page
@@ -282,18 +283,20 @@ impl Page {
         curr_start += 2;
         res[curr_start..(curr_start + 2)].clone_from_slice(&self.header.num_slot.to_be_bytes());
         curr_start += 2;
-        for (slot_id, hash_slot) in &self.header.slot_arr {
-            res[curr_start..(curr_start + 2)].clone_from_slice(&slot_id.to_be_bytes());
+        let mut slot_arr = self.hash_to_vec_slot();
+        slot_arr.sort_unstable_by(|a, b| b.start.cmp(&a.start));
+        for slot in slot_arr {
+            res[curr_start..(curr_start + 2)].clone_from_slice(&slot.slot_id.to_be_bytes());
             curr_start += 2;
-            res[curr_start..(curr_start + 2)].clone_from_slice(&hash_slot.start.to_be_bytes());
+            res[curr_start..(curr_start + 2)].clone_from_slice(&slot.start.to_be_bytes());
             curr_start += 2;
-            res[curr_start..(curr_start + 2)].clone_from_slice(&hash_slot.end.to_be_bytes());
+            res[curr_start..(curr_start + 2)].clone_from_slice(&slot.end.to_be_bytes());
             curr_start += 2;
-            res[curr_start..(curr_start + usize::from(hash_slot.end - hash_slot.start))]
+            res[curr_start..(curr_start + usize::from(slot.end - slot.start))]
                 .clone_from_slice(
-                    &self.data[usize::from(hash_slot.start)..usize::from(hash_slot.end)],
+                    &self.data[usize::from(slot.start)..usize::from(slot.end)],
                 );
-            curr_start += usize::from(hash_slot.end - hash_slot.start);
+            curr_start += usize::from(slot.end - slot.start);
         }
         res
     }
@@ -339,6 +342,12 @@ pub struct PageIter {
     slot_vec: Vec<VecSlot>,
     data: [u8; PAGE_SIZE],
     index: usize,
+}
+
+impl PageIter {
+    pub fn gen_empty_pg_iter() -> Self {
+        PageIter{slot_vec: Vec::new(), data: [0; PAGE_SIZE], index: 0}
+    }
 }
 
 /// The implementation of the (consuming) page iterator.

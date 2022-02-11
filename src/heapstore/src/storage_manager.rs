@@ -11,9 +11,16 @@ use std::path::{PathBuf, Path};
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, RwLock};
 
+#[derive(Serialize, Deserialize)]
+pub struct SerializedHeapFile {
+    pub num_page: Arc<RwLock<PageId>>,
+    pub file_path: Arc<RwLock<PathBuf>>,
+}
+
 /// The StorageManager struct
 #[derive(Serialize, Deserialize)]
 pub struct StorageManager {
+    pub container_map: HashMap<ContainerId, SerializedHeapFile>,
     /// Path to database metadata files.
     pub storage_path: String,
     is_temp: bool,
@@ -30,7 +37,14 @@ impl StorageManager {
         _perm: Permissions,
         _pin: bool,
     ) -> Option<Page> {
-        panic!("TODO milestone hs");
+        match &self.container_map.get(&container_id) {
+            None => None,
+            Some(container) => {let heap_file = HeapFile::new(container.file_path.read().unwrap().to_path_buf()).unwrap(); //Error handling
+            match heap_file.read_page_from_file(page_id) {
+                Err(_) => None,
+                Ok(page) => Some(page),
+            }}
+        }
     }
 
     /// Write a page

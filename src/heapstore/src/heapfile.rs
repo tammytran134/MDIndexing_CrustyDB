@@ -2,6 +2,7 @@ use crate::page::Page;
 use common::ids::PageId;
 use common::{CrustyError, PAGE_SIZE};
 use std::fs::{File, OpenOptions};
+use std::os::unix::prelude::FileExt;
 use std::io::prelude::*;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU16, Ordering};
@@ -9,7 +10,7 @@ use std::sync::{Arc, RwLock};
 
 use std::io::BufWriter;
 use std::io::{Seek, SeekFrom};
-
+use std::collections::HashMap;
 /// The struct for a heap file.  
 ///
 /// HINT: You likely will want to design for interior mutability for concurrent accesses.
@@ -22,8 +23,8 @@ use std::io::{Seek, SeekFrom};
 /// Your code should persist what information is needed to recreate the heapfile.
 ///
 pub(crate) struct HeapFile {
-    // TODO milestone hs (add new fields)
-
+    pub num_page: Arc<RwLock<PageId>>,
+    pub heap_file: Arc<RwLock<File>>,
     // The following are for profiling/ correctness checks
     pub read_count: AtomicU16,
     pub write_count: AtomicU16,
@@ -51,10 +52,9 @@ impl HeapFile {
             }
         };
 
-        // TODO milestone hs
-
         Ok(HeapFile {
-            // TODO milestone hs init your new field(s)
+            num_page: Arc::new(RwLock::new(0)),
+            heap_file: Arc::new(RwLock::new(file)),
             read_count: AtomicU16::new(0),
             write_count: AtomicU16::new(0),
         })
@@ -64,7 +64,7 @@ impl HeapFile {
     /// Return type is PageId (alias for another type) as we cannot have more
     /// pages than PageId can hold.
     pub fn num_pages(&self) -> PageId {
-        panic!("TODO milestone hs");
+        *self.num_page.read().unwrap()
     }
 
     /// Read the page from the file.
@@ -75,7 +75,13 @@ impl HeapFile {
         {
             self.read_count.fetch_add(1, Ordering::Relaxed);
         }
-        panic!("TODO milestone hs");
+        //check valid pids
+        let start_offset = usize::from(pid) * PAGE_SIZE;
+        let mut buf = [0u8; PAGE_SIZE];
+        self.heap_file.read().unwrap().read_at(&mut buf, start_offset.try_into().unwrap());
+        let page = Page::from_bytes(&buf);
+        return Ok(page);
+
     }
 
     /// Take a page and write it to the underlying file.
@@ -86,7 +92,11 @@ impl HeapFile {
         {
             self.write_count.fetch_add(1, Ordering::Relaxed);
         }
-        panic!("TODO milestone hs");
+        let start_offset = usize::from(*self.num_page.read().unwrap()) * PAGE_SIZE;
+        let buf = page.get_bytes();
+        self.heap_file.write().unwrap().write_at(&buf, start_offset.try_into().unwrap());
+        *self.num_page.write().unwrap() += 1;
+        Ok(())
     }
 }
 
@@ -119,7 +129,6 @@ mod test {
         let bytes = get_random_byte_vec(100);
         p0.add_value(&bytes);
         let p0_bytes = p0.get_bytes();
-
         hf.write_page_to_file(p0);
         //check the page
         assert_eq!(1, hf.num_pages());
@@ -137,7 +146,6 @@ mod test {
         let p1_bytes = p1.get_bytes();
 
         hf.write_page_to_file(p1);
-
         assert_eq!(2, hf.num_pages());
         //Recheck page0
         let checkp0 = hf.read_page_from_file(0).unwrap();
