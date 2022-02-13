@@ -5,22 +5,26 @@ use common::prelude::*;
 use common::storage_trait::StorageTrait;
 use common::testutil::gen_random_dir;
 use common::PAGE_SIZE;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
+use std::fs::{File, OpenOptions, metadata};
+use std::os::unix::prelude::FileExt;
 use std::path::{PathBuf, Path};
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, RwLock};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct SerializedHeapFile {
-    pub num_page: Arc<RwLock<PageId>>,
-    pub file_path: Arc<RwLock<PathBuf>>,
+    pub hf_path: Arc<RwLock<PathBuf>>,
+    //pub hf_bytes: Arc<RwLock<Vec<u8>>>,
 }
 
 /// The StorageManager struct
 #[derive(Serialize, Deserialize)]
 pub struct StorageManager {
-    pub container_map: HashMap<ContainerId, SerializedHeapFile>,
+    pub hf_serialized_map: Arc<RwLock<HashMap<ContainerId, SerializedHeapFile>>>,
+    #[serde(skip)]
+    hf_map: Arc<RwLock<HashMap<ContainerId, HeapFile>>>,
     /// Path to database metadata files.
     pub storage_path: String,
     is_temp: bool,
@@ -37,13 +41,15 @@ impl StorageManager {
         _perm: Permissions,
         _pin: bool,
     ) -> Option<Page> {
-        match &self.container_map.get(&container_id) {
+        match &self.hf_map.read().unwrap().get(&container_id) { // if container exists
             None => None,
-            Some(container) => {let heap_file = HeapFile::new(container.file_path.read().unwrap().to_path_buf()).unwrap(); //Error handling
-            match heap_file.read_page_from_file(page_id) {
-                Err(_) => None,
-                Ok(page) => Some(page),
-            }}
+            Some(heap_file) =>
+            {
+                match heap_file.read_page_from_file(page_id) { // if read page succeeds
+                    Err(_) => None,
+                    Ok(page) => Some(page),
+                }
+            },
         }
     }
 
@@ -54,20 +60,80 @@ impl StorageManager {
         page: Page,
         _tid: TransactionId,
     ) -> Result<(), CrustyError> {
-        panic!("TODO milestone hs");
+        match &self.hf_map.read().unwrap().get(&container_id) { // if container exists
+            None => Err(CrustyError::CrustyError(String::from("Couldn't find Container"))),
+            Some(heap_file) =>
+            {
+                match heap_file.write_page_to_file(page) { // if write page succeeds
+                    Err(_) => Err(CrustyError::CrustyError(String::from("Couldn't write page to file"))),
+                    Ok(_) => Ok(()),
+                }
+            },
+        }
     }
+
 
     /// Get the number of pages for a container
     fn get_num_pages(&self, container_id: ContainerId) -> PageId {
-        panic!("TODO milestone hs");
+        *self.hf_map.read().unwrap().get(&container_id).unwrap().num_page.read().unwrap()
     }
 
     /// Test utility function for counting reads and writes served by the heap file.
     /// Can return 0,0 for invalid container_ids
     #[allow(dead_code)]
     pub(crate) fn get_hf_read_write_count(&self, container_id: ContainerId) -> (u16, u16) {
-        panic!("TODO milestone hs");
+        match &self.hf_map.read().unwrap().get(&container_id) { // if container exists
+            None => (0,0),
+            Some(heap_file) => {
+                (
+                    heap_file.read_count.load(Ordering::Relaxed),
+                    heap_file.write_count.load(Ordering::Relaxed),
+                )
+            }
+        }
     }
+
+    pub(crate) fn write_updated_page_to_file(&self, container_id: ContainerId, page: &Page, page_id: PageId) -> Result<(), CrustyError> {
+        let page_serialized = page.get_bytes();
+        let hf_map = &self.hf_map.read().unwrap();
+        let hf = hf_map.get(&container_id).unwrap();
+        let underlying_file = hf.heap_file.write().unwrap();
+        underlying_file.write_at(&page_serialized, (usize::from(page_id) * PAGE_SIZE).try_into().unwrap())?;    
+        Ok(())
+    }
+
+    // pub(crate) fn write_data_to_file(&self, container_id: ContainerId, page: &Page, page_id: PageId, slot_id: SlotId, value: Vec<u8>) -> Result<(), CrustyError> {
+        // let hash_slot = &page.header.slot_arr.get(&slot_id).unwrap();
+        // let start = hash_slot.start;
+        // let end = hash_slot.end;
+        // let file_start_offset = page_id * u16::try_from(PAGE_SIZE).unwrap() + start;
+        // let hf_serialized_map = &self.hf_serialized_map.read().unwrap();
+        // let serialized_hf = hf_serialized_map.get(&container_id).unwrap();
+        // let underlying_file = match OpenOptions::new()
+        //     .read(true)
+        //     .write(true)
+        //     .open(serialized_hf.hf_path.write().unwrap().clone())
+        // {
+        //     Ok(f) => f,
+        //     Err(error) => {
+        //         return Err(CrustyError::CrustyError(format!(
+        //             "Cannot open heap file: {} {} {:?}",
+        //             serialized_hf.hf_path.read().unwrap().to_string_lossy(),
+        //             error.to_string(),
+        //             error
+        //         )))
+        //     }
+        // };
+    //     let hf_map = &self.hf_map.read().unwrap();
+    //     let hf = hf_map.get(&container_id).unwrap();
+    //     let underlying_file = hf.heap_file.write().unwrap();
+    //     underlying_file.write_at(&value, file_start_offset.try_into().unwrap())?;
+    //     let header_size = page.get_header_size();
+    //     underlying_file.write_at(&slot_id.to_be_bytes(), (header_size-6).try_into().unwrap())?;
+    //     underlying_file.write_at(&start.to_be_bytes(), (header_size-4).try_into().unwrap())?;
+    //     underlying_file.write_at(&end.to_be_bytes(), (header_size-2).try_into().unwrap())?;
+    //     Ok(())
+    // }
 }
 
 /// Implementation of storage trait
@@ -77,7 +143,28 @@ impl StorageTrait for StorageManager {
     /// Create a new storage manager that will use storage_path as the location to persist data
     /// (if the storage manager persists records on disk)
     fn new(storage_path: String) -> Self {
-        panic!("TODO milestone hs");
+        //fs::create_dir_all(&storage_path);
+        let container_dir = format!("{}/containers", &storage_path);
+        fs::create_dir_all(container_dir);
+        let mut hf_serialized_map = HashMap::new();
+        let mut hf_map = HashMap::new();
+        let container_location_dir = format!("{}/containers_location", &storage_path);
+        if Path::new(&container_location_dir).exists() {
+            let locations = fs::read_dir(&container_location_dir).unwrap();
+            for location in locations {
+                let location = location.unwrap();
+                let location_path = location.path();
+                let container_id = location.file_name().into_string().unwrap().parse::<u16>().unwrap();;
+                let reader = File::open(&location_path).expect("error opening file");
+                let serialized_hf: SerializedHeapFile = serde_json::from_reader(reader).expect("error reading from json");
+                hf_serialized_map.insert(container_id, serialized_hf);
+                let heap_file_path = hf_serialized_map.get(&container_id).unwrap().hf_path.read().unwrap();
+                let heap_file = HeapFile::new(heap_file_path.to_path_buf()).unwrap();
+                hf_map.insert(container_id, heap_file);
+            }
+        }
+        StorageManager {hf_serialized_map: Arc::new(RwLock::new(hf_serialized_map)), 
+        hf_map: Arc::new(RwLock::new(hf_map)), storage_path: storage_path, is_temp: false}
     }
 
     /// Create a new storage manager for testing. If this creates a temporary directory it should be cleaned up
@@ -85,7 +172,7 @@ impl StorageTrait for StorageManager {
     fn new_test_sm() -> Self {
         let storage_path = gen_random_dir().to_string_lossy().to_string();
         debug!("Making new temp storage_manager {}", storage_path);
-        panic!("TODO milestone hs");
+        StorageManager::new(storage_path)
     }
 
     fn get_simple_config() -> common::ContainerConfig {
@@ -106,7 +193,23 @@ impl StorageTrait for StorageManager {
         if value.len() > PAGE_SIZE {
             panic!("Cannot handle inserting a value larger than the page size");
         }
-        panic!("TODO milestone hs");
+        let container_num_page = self.get_num_pages(container_id);
+        let i: PageId = 0;
+        for i in 0..container_num_page {
+            let mut page = &mut self.get_page(container_id, i, tid, Permissions::ReadWrite, false).unwrap();
+            match &page.add_value(&value) {
+                None => continue,
+                Some(slot_id) => {
+                    //self.write_data_to_file(container_id, page, i, *slot_id, value);
+                    self.write_updated_page_to_file(container_id, page, i);
+                    return ValueId { container_id: container_id, segment_id: None, page_id: Some(i), slot_id: Some(*slot_id),};
+                },
+            }   
+        }
+        let mut new_page = Page::new(container_num_page);
+        let slot_id = &new_page.add_value(&value).unwrap();
+        self.write_page(container_id, new_page, tid);
+        return ValueId { container_id: container_id, segment_id: None, page_id: Some(self.get_num_pages(container_id)-1), slot_id: Some(*slot_id),};
     }
 
     /// Insert some bytes into a container for vector of values (e.g. record).
@@ -118,12 +221,23 @@ impl StorageTrait for StorageManager {
         values: Vec<Vec<u8>>,
         tid: TransactionId,
     ) -> Vec<ValueId> {
-        panic!("TODO milestone hs");
+        let mut res = Vec::new();
+        for value in values {
+            res.push(self.insert_value(container_id, value, tid));
+        }
+        res
     }
 
     /// Delete the data for a value. If the valueID is not found it returns Ok() still.
     fn delete_value(&self, id: ValueId, tid: TransactionId) -> Result<(), CrustyError> {
-        panic!("TODO milestone hs");
+        let mut page = &mut self.get_page(id.container_id, id.page_id.unwrap(), tid, Permissions::ReadWrite, false).unwrap();
+        match &page.delete_value(id.slot_id.unwrap()) {
+            None => Ok(()),
+            Some(_) => {
+                self.write_updated_page_to_file(id.container_id, page, id.page_id.unwrap());
+                Ok(())
+            }
+        }
     }
 
     /// Updates a value. Returns valueID on update (which may have changed). Error on failure
@@ -135,7 +249,8 @@ impl StorageTrait for StorageManager {
         id: ValueId,
         _tid: TransactionId,
     ) -> Result<ValueId, CrustyError> {
-        panic!("TODO milestone hs");
+        self.delete_value(id, _tid);
+        Ok(self.insert_value(id.container_id, value, _tid))
     }
 
     /// Create a new container to be stored. 
@@ -156,7 +271,12 @@ impl StorageTrait for StorageManager {
         _container_type: common::ids::StateType,
         _dependencies: Option<Vec<ContainerId>>,
     ) -> Result<(), CrustyError> {
-        panic!("TODO milestone hs");
+        let parent_filepath = format!("{}/containers", self.storage_path); 
+        let child_filename = format!("{}/{}", parent_filepath, container_id.to_string());
+        let child_filepath = Path::new(&child_filename);
+        self.hf_map.write().unwrap().insert(container_id, HeapFile::new(child_filepath.to_path_buf()).unwrap());
+        self.hf_serialized_map.write().unwrap().insert(container_id, SerializedHeapFile {hf_path: Arc::new(RwLock::new(child_filepath.to_path_buf()))});
+        Ok(())
     }
 
     /// A wrapper function to call create container
@@ -173,7 +293,13 @@ impl StorageTrait for StorageManager {
     /// Remove the container and all stored values in the container.
     /// If the container is persisted remove the underlying files
     fn remove_container(&self, container_id: ContainerId) -> Result<(), CrustyError> {
-        panic!("TODO milestone hs");
+        let hf_serialized_map = &self.hf_serialized_map.read().unwrap();
+        let serialized_hf = hf_serialized_map.get(&container_id).unwrap();
+        let hf_filepath = serialized_hf.hf_path.read().unwrap().clone();
+        self.hf_map.write().unwrap().remove(&container_id);
+        self.hf_serialized_map.write().unwrap().remove(&container_id);
+        fs::remove_file(&hf_filepath);
+        Ok(())
     }
 
     /// Get an iterator that returns all valid records
@@ -183,7 +309,10 @@ impl StorageTrait for StorageManager {
         tid: TransactionId,
         _perm: Permissions,
     ) -> Self::ValIterator {
-        panic!("TODO milestone hs");
+        let hf_serialized_map = &self.hf_serialized_map.read().unwrap();
+        let hf_serialized = hf_serialized_map.get(&container_id).unwrap();
+        let hf_file_path = hf_serialized.hf_path.read().unwrap().to_path_buf();
+        HeapFileIterator::new(container_id, tid, Arc::new(HeapFile::new(hf_file_path).unwrap()))
     }
 
     /// Get the data for a particular ValueId. Error if does not exists
@@ -193,7 +322,22 @@ impl StorageTrait for StorageManager {
         tid: TransactionId,
         perm: Permissions,
     ) -> Result<Vec<u8>, CrustyError> {
-        panic!("TODO milestone hs");
+        match &self.hf_map.read().unwrap().get(&id.container_id) { // if container exists
+            None => Err(CrustyError::CrustyError(String::from("Couldn't find Container"))),
+            Some(heap_file) =>
+            {
+                match heap_file.read_page_from_file(id.page_id.unwrap()) { // if read page succeeds
+                    Err(_) => Err(CrustyError::CrustyError(String::from("Couldn't find page"))),
+                    Ok(page) => 
+                    {
+                        match page.get_value(id.slot_id.unwrap()) {
+                            None => Err(CrustyError::CrustyError(String::from("Couldn't find record"))),
+                            Some(value) => Ok(value.clone()),
+                        }
+                    }
+                }
+            },
+        }
     }
 
     /// Notify the storage manager that the transaction is finished so that any held resources can be released.
@@ -203,7 +347,9 @@ impl StorageTrait for StorageManager {
 
     /// Testing utility to reset all state associated the storage manager.
     fn reset(&self) -> Result<(), CrustyError> {
-        panic!("TODO milestone hs");
+        fs::remove_dir_all(&self.storage_path);
+        fs::create_dir(&self.storage_path);
+        Ok(())
     }
 
     /// If there is a buffer pool or cache it should be cleared/reset.
@@ -218,7 +364,20 @@ impl StorageTrait for StorageManager {
     /// that can be used to create a HeapFile object pointing to the same data. You don't need to
     /// worry about recreating read_count or write_count.
     fn shutdown(&self) {
-        panic!("TODO milestone hs");
+        info!("Shutting down");
+        if self.is_temp {
+            self.reset();
+            return;
+        }
+        let filepath = format!("{}/containers_location", &self.storage_path);
+        fs::create_dir_all(&filepath);
+        for (container_id, serialized_hf) in self.hf_serialized_map.read().unwrap().iter() {
+            let name = container_id.to_string();
+            let filename = format!("{}/{}", filepath, name);
+            serde_json::to_writer(fs::File::create(filename).expect("error creating file"),
+                                  &serialized_hf)
+                .expect("error deserializing storage manager");            
+        }   
     }
 
     fn import_csv(
@@ -232,7 +391,7 @@ impl StorageTrait for StorageManager {
         // Convert path into an absolute path.
         let path = fs::canonicalize(path)?;
         debug!("server::csv_utils trying to open file, path: {:?}", path);
-        let file = fs::File::open(path)?;
+        let file = File::open(path)?;
         // Create csv reader.
         let mut rdr = csv::ReaderBuilder::new()
             .has_headers(false)
@@ -284,7 +443,20 @@ impl Drop for StorageManager {
     /// Shutdown the storage manager. Can call be called by shutdown. Should be safe to call multiple times.
     /// If temp, this should remove all stored files.
     fn drop(&mut self) {
-        panic!("TODO milestone hs");
+        info!("Shutting down");
+        if self.is_temp {
+            self.reset();
+            return;
+        }
+        let filepath = format!("{}/containers_location", self.storage_path);
+        fs::create_dir_all(&filepath);
+        for (container_id, serialized_hf) in self.hf_serialized_map.read().unwrap().iter() {
+            let name = container_id.to_string();
+            let filename = format!("{}/{}", filepath, name);
+            serde_json::to_writer(fs::File::create(filename).expect("error creating file"),
+                                  &serialized_hf)
+                .expect("error deserializing storage manager");            
+        }   
     }
 }
 
@@ -393,7 +565,6 @@ mod test {
 
         sm.create_table(cid).unwrap();
         let tid = TransactionId::new();
-
         let vals = get_random_vec_of_byte_vec(1000, 40, 400);
         sm.insert_values(cid, vals, tid);
         let mut count = 0;

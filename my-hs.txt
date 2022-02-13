@@ -1,0 +1,2 @@
+rearrange how you serialize page - header so dont have to rewrite whole page
+read page from file

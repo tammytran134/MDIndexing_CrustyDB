@@ -15,8 +15,8 @@ pub type ValAddr = u16;
 /// the page's data array, and end field represents the end offset of where
 /// the daa is held in the page's data array
 pub struct HashSlot {
-    start: ValAddr,
-    end: ValAddr,
+    pub start: ValAddr,
+    pub end: ValAddr,
 }
 
 /// A vec slot is used mainly for sorting, and holds information about
@@ -123,12 +123,14 @@ impl Page {
         let mut res = None;
         let mut slot_arr = self.hash_to_vec_slot();
         slot_arr.sort_unstable_by(|a, b| a.start.cmp(&b.start));
-        if (usize::from(slot_arr[0].start)
-            - self.get_header_size()
-            - (size_of_val(&slot_arr[0].slot_id)
-                + size_of_val(&slot_arr[0].start)
-                + size_of_val(&slot_arr[0].end)))
-            >= data_size
+        // println!("What's wrong 1 {}", usize::from(slot_arr[0].start)
+        // - self.get_header_size());
+        let beginning_spot = slot_arr[0].start as i16
+        - self.get_header_size() as i16
+        - (size_of_val(&slot_arr[0].slot_id)
+            + size_of_val(&slot_arr[0].start)
+            + size_of_val(&slot_arr[0].end)) as i16;
+        if beginning_spot >= data_size as i16
         {
             res = Some(slot_arr[0].start - u16::try_from(data_size).unwrap());
         }

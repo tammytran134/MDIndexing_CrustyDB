@@ -1,7 +1,7 @@
 use crate::page::Page;
 use common::ids::PageId;
 use common::{CrustyError, PAGE_SIZE};
-use std::fs::{File, OpenOptions};
+use std::fs::{File, OpenOptions, metadata};
 use std::os::unix::prelude::FileExt;
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -25,6 +25,7 @@ use std::collections::HashMap;
 pub(crate) struct HeapFile {
     pub num_page: Arc<RwLock<PageId>>,
     pub heap_file: Arc<RwLock<File>>,
+    // pub page_map: Arc<RwLock<HashMap<PageId, Page>>>,
     // The following are for profiling/ correctness checks
     pub read_count: AtomicU16,
     pub write_count: AtomicU16,
@@ -32,6 +33,22 @@ pub(crate) struct HeapFile {
 
 /// HeapFile required functions
 impl HeapFile {
+    pub(crate) fn get_num_page_from_file(file_path: &PathBuf) -> PageId {
+        u16::try_from(metadata(file_path).unwrap().len() as usize / PAGE_SIZE).unwrap()
+    }
+
+    // pub(crate) fn deserialize_page_from_file(num_page: PageId, file: &File) -> HashMap<PageId, Page> {
+    //     let mut res = HashMap::new();
+    //     for i in 0..num_page {
+    //         let start_offset = usize::from(i) * PAGE_SIZE;
+    //         let mut buf = [0u8; PAGE_SIZE];
+    //         file.read_at(&mut buf, start_offset.try_into().unwrap());
+    //         let page = Page::from_bytes(&buf);
+    //         res.insert(i, page);        
+    //     }
+    //     res
+    // }
+
     /// Create a new heapfile for the given path and container Id. Return Result<Self> if able to create.
     /// Errors could arise from permissions, space, etc when trying to create the file used by HeapFile.
     pub(crate) fn new(file_path: PathBuf) -> Result<Self, CrustyError> {
@@ -51,14 +68,24 @@ impl HeapFile {
                 )))
             }
         };
-
+        let num_page = HeapFile::get_num_page_from_file(&file_path);
+        // let mut page_map = HashMap::new();
+        // for i in 0..num_page {
+        //     let start_offset = usize::from(i) * PAGE_SIZE;
+        //     let mut buf = [0u8; PAGE_SIZE];
+        //     file.read_at(&mut buf, start_offset.try_into().unwrap());
+        //     let page = Page::from_bytes(&buf);
+        //     page_map.insert(i, page);        
+        // }
         Ok(HeapFile {
-            num_page: Arc::new(RwLock::new(0)),
+            num_page: Arc::new(RwLock::new(num_page)),
             heap_file: Arc::new(RwLock::new(file)),
+            //page_map: Arc::new(RwLock::new(page_map)),
             read_count: AtomicU16::new(0),
             write_count: AtomicU16::new(0),
         })
     }
+
 
     /// Return the number of pages for this HeapFile.
     /// Return type is PageId (alias for another type) as we cannot have more
@@ -76,12 +103,15 @@ impl HeapFile {
             self.read_count.fetch_add(1, Ordering::Relaxed);
         }
         //check valid pids
+        if pid >= self.num_pages() {
+            return Err(CrustyError::CrustyError(String::from("pid invalid")));
+        }
+        //let page = *self.page_map.read().unwrap().get(&pid).unwrap();
         let start_offset = usize::from(pid) * PAGE_SIZE;
         let mut buf = [0u8; PAGE_SIZE];
         self.heap_file.read().unwrap().read_at(&mut buf, start_offset.try_into().unwrap());
         let page = Page::from_bytes(&buf);
-        return Ok(page);
-
+        Ok(page)
     }
 
     /// Take a page and write it to the underlying file.
@@ -94,7 +124,8 @@ impl HeapFile {
         }
         let start_offset = usize::from(*self.num_page.read().unwrap()) * PAGE_SIZE;
         let buf = page.get_bytes();
-        self.heap_file.write().unwrap().write_at(&buf, start_offset.try_into().unwrap());
+        self.heap_file.write().unwrap().write_at(&buf, start_offset.try_into().unwrap())?;
+        //self.page_map.write().unwrap().insert(*self.num_page.read().unwrap(), page);
         *self.num_page.write().unwrap() += 1;
         Ok(())
     }
