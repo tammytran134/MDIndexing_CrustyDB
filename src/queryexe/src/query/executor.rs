@@ -96,6 +96,8 @@ impl Executor {
                         let s = format!("{},", attr.name());
                         res.push_str(&s);
                     }
+                    //remove the last ,
+                    res.pop();
                     res.push('\n');
                 }
 
@@ -105,8 +107,12 @@ impl Executor {
                         let s = format!("{},", f.to_string());
                         res.push_str(&s);
                     }
+                    //remove the last ,
+                    res.pop();
                     res.push('\n');
                 }
+                //remove the last \n
+                res.pop();
                 self.close()?;
                 Ok(QueryResult::new(&res))
             }

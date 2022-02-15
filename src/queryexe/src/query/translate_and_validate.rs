@@ -65,10 +65,9 @@ impl<'a, T: 'a + Catalog> TranslateAndValidate<'a, T> {
         for table in &self.tables {
             let table_id = self
                 .catalog
-                .get_table_id(&identifiers[0].to_string())
-                .ok_or_else(|| CrustyError::CrustyError("Missing Table".to_string()))?;
+                .get_table_id(&identifiers[0].to_string());
 
-            if self.catalog.is_valid_column(table_id, &orig) {
+            if table_id.is_some() && self.catalog.is_valid_column(table_id.unwrap(), &orig) {
                 if field.is_some() {
                     return Err(CrustyError::ValidationError(format!(
                         "The field {} could refer to more than one table listed in the query",
@@ -190,7 +189,7 @@ impl<'a, T: 'a + Catalog> TranslateAndValidate<'a, T> {
                         (PredExpr::Literal(_), PredExpr::Ident(id)) => id.table().to_string(),
                         (PredExpr::Ident(id), PredExpr::Literal(_)) => id.table().to_string(),
                         _ => {
-                            return Err(CrustyError::ValidationError(String::from("Only where predicates with at least one indentifier and at least one literal are supported")));
+                            return Err(CrustyError::ValidationError(String::from("Only where predicates with at least one identifier and at least one literal are supported")));
                         }
                     }
                 }

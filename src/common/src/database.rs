@@ -62,6 +62,7 @@ impl Catalog for Database {
                 }
             }
         }
+        debug!("Unable to find table `{}`. Named Containers: {:?}", name, containers);
         None
     }
 

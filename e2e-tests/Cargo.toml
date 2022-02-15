@@ -1,0 +1,14 @@
+[package]
+name = "e2e-tests"
+version = "0.1.0"
+authors = ["James Doucette"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+utilities = { path ="../src/utilities"}
+serial_test = "0.4.0"
+clap = "2.33.3"
+log = "0.4.11"
+env_logger = "0.7.1"

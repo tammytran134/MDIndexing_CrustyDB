@@ -57,10 +57,12 @@ pub trait StorageTrait {
         tid: TransactionId,
     ) -> Result<ValueId, CrustyError>;
 
-    /// Create a new container to be stored. The name must be unique. Multiple calls for the same name
-    /// should return the same containerId.
-    // fn create_container(&self, name: String) -> ContainerId;
+    /// Create a new container to be stored. 
+    /// fn create_container(&self, name: String) -> ContainerId;
     /// Creates a new container object.
+    /// For this milestone you will not need to utilize 
+    /// the container_config, name, container_type, or dependencies
+    /// 
     ///
     /// # Arguments
     ///
