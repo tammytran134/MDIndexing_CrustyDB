@@ -3,10 +3,9 @@ use common::PAGE_SIZE;
 use std::cmp::max;
 use std::collections::HashMap;
 use std::convert::TryInto;
-use std::mem::{size_of, size_of_val};
+use std::mem::size_of_val;
 
 pub type ValAddr = u16;
-
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 /// A hash slot is the value for the header's slot_arr hashmap, with slot_id being the key
@@ -57,7 +56,7 @@ impl Page {
     /// Create a new page
     pub fn new(page_id: PageId) -> Self {
         let new_header = Header {
-            page_id: page_id,
+            page_id,
             num_slot: 0,
             slot_arr: HashMap::new(),
         };
@@ -126,12 +125,11 @@ impl Page {
         // println!("What's wrong 1 {}", usize::from(slot_arr[0].start)
         // - self.get_header_size());
         let beginning_spot = slot_arr[0].start as i16
-        - self.get_header_size() as i16
-        - (size_of_val(&slot_arr[0].slot_id)
-            + size_of_val(&slot_arr[0].start)
-            + size_of_val(&slot_arr[0].end)) as i16;
-        if beginning_spot >= data_size as i16
-        {
+            - self.get_header_size() as i16
+            - (size_of_val(&slot_arr[0].slot_id)
+                + size_of_val(&slot_arr[0].start)
+                + size_of_val(&slot_arr[0].end)) as i16;
+        if beginning_spot >= data_size as i16 {
             res = Some(slot_arr[0].start - u16::try_from(data_size).unwrap());
         }
         for i in 0..(num_slot - 1) {
@@ -186,7 +184,7 @@ impl Page {
     pub fn add_value(&mut self, bytes: &[u8]) -> Option<SlotId> {
         let data_size = bytes.len();
         let first_free_space = self.get_first_free_space(data_size);
-        let mut start_offset: ValAddr = 0;
+        let start_offset;
         match first_free_space {
             None => return None,
             Some(val_addr) => start_offset = val_addr,
@@ -209,12 +207,13 @@ impl Page {
     /// Return the bytes for the slotId. If the slotId is not valid then return None
     pub fn get_value(&self, slot_id: SlotId) -> Option<Vec<u8>> {
         match &self.header.slot_arr.get(&slot_id) {
-            Some(hash_slot) =>
-                {return Some(
+            Some(hash_slot) => {
+                return Some(
                     self.data
                         [hash_slot.start.try_into().unwrap()..hash_slot.end.try_into().unwrap()]
                         .to_vec(),
-                )},
+                );
+            }
             None => None,
         }
     }
@@ -295,9 +294,7 @@ impl Page {
             res[curr_start..(curr_start + 2)].clone_from_slice(&slot.end.to_be_bytes());
             curr_start += 2;
             res[curr_start..(curr_start + usize::from(slot.end - slot.start))]
-                .clone_from_slice(
-                    &self.data[usize::from(slot.start)..usize::from(slot.end)],
-                );
+                .clone_from_slice(&self.data[usize::from(slot.start)..usize::from(slot.end)]);
             curr_start += usize::from(slot.end - slot.start);
         }
         res
@@ -348,7 +345,11 @@ pub struct PageIter {
 
 impl PageIter {
     pub fn gen_empty_pg_iter() -> Self {
-        PageIter{slot_vec: Vec::new(), data: [0; PAGE_SIZE], index: 0}
+        PageIter {
+            slot_vec: Vec::new(),
+            data: [0; PAGE_SIZE],
+            index: 0,
+        }
     }
 }
 
@@ -356,7 +357,7 @@ impl PageIter {
 impl Iterator for PageIter {
     type Item = Vec<u8>;
     fn next(&mut self) -> Option<Self::Item> {
-        let mut res: Vec<u8> = Vec::new();
+        let mut res: Vec<u8>;
         let slot = &self.slot_vec.get(self.index);
         self.index += 1;
         match slot {

@@ -1,8 +1,7 @@
 use crate::heapfile::HeapFile;
 use crate::page::PageIter;
 use common::ids::{ContainerId, PageId, TransactionId};
-use std::sync::{Arc, RwLock};
-use std::mem;
+use std::sync::Arc;
 
 #[allow(dead_code)]
 /// The struct for a HeapFileIterator.
@@ -13,23 +12,29 @@ use std::mem;
 pub struct HeapFileIterator {
     hf: Arc<HeapFile>,
     index: PageId,
+    // Iterator of most currently accessed page
     curr_pg_iter: PageIter,
+    // if the iterator is at the end of most currently accessed page or not
     end_of_page: bool,
-
 }
 
 /// Required HeapFileIterator functions
 impl HeapFileIterator {
     /// Create a new HeapFileIterator that stores the container_id, tid, and heapFile pointer.
     /// This should initialize the state required to iterate through the heap file.
-    pub(crate) fn new(_container_id: ContainerId, _tid: TransactionId, hf: Arc<HeapFile>) -> Self {    
-        HeapFileIterator {hf: hf, index: 0, 
-            curr_pg_iter: PageIter::gen_empty_pg_iter(), end_of_page: true}
+    pub(crate) fn new(_container_id: ContainerId, _tid: TransactionId, hf: Arc<HeapFile>) -> Self {
+        HeapFileIterator {
+            hf,
+            index: 0,
+            curr_pg_iter: PageIter::gen_empty_pg_iter(),
+            end_of_page: true,
+        }
     }
 }
 
 /// Trait implementation for heap file iterator.
 /// Note this will need to iterate through the pages and their respective iterators.
+/// Recursive function to keep calling next until we are not at the end of a page
 impl Iterator for HeapFileIterator {
     type Item = Vec<u8>;
     fn next(&mut self) -> Option<Self::Item> {
@@ -39,15 +44,21 @@ impl Iterator for HeapFileIterator {
         }
         match self.end_of_page {
             //None => {self.curr_pg_iter = Arc::new(Some(self.hf.read_page_from_file(*self.index).unwrap().into_iter()))},
-            true => {self.curr_pg_iter = self.hf.read_page_from_file(self.index).unwrap().into_iter(); self.end_of_page = false},
+            true => { // if at end of current page, set curr_pg_iter to the iterator of the next page
+                self.curr_pg_iter = self.hf.read_page_from_file(self.index).unwrap().into_iter();
+                self.end_of_page = false
+            }
             false => (),
         }
         {
             match &self.curr_pg_iter.next() {
                 Some(data) => Some(data.clone()),
-                None => {self.index += 1; //self.curr_pg_iter = PageIter::gen_empty_pg_iter(); 
-                    self.end_of_page = true; return self.next();}
+                None => { // If at end of page, increment index to access next page and call next recursively
+                    self.index += 1; 
+                    self.end_of_page = true;
+                    self.next()
+                }
+            }
         }
-    }
     }
 }

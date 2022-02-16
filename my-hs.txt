@@ -1,2 +1,34 @@
-rearrange how you serialize page - header so dont have to rewrite whole page
-read page from file
+Solution: 
+HeapFile struct: contains the underlying File that represents the heap file
+HeapFileIterator: contains the corresponding HeapFile struct, the current Iterator 
+of the Page we are iterating on, and a boolean fields to indicate if we are at the end
+of the current page and will need to move to the next page - next is a recursive function
+that keeps getting the next value from the current Page, if we are at the end of the current Page (PageIterator.next() returns None),
+then next is called again to iterate the values of the next Page
+
+StorageManager Struct: I keep 2 maps in this struct:
+1. A map that can be serialized when shutdown that holds the mapping between a
+ContainerID and SerializedHeapFile struct (which contains the path to the underlying File that represents the Container)
+2. A non serializable map that holds the mapping between a ContainerID and its HeapFile struct:
+This map is primarily used in all update, insert, delete value functions to modify the heapfile
+because we can access the underlying File directly from there
+
+Future optimization:
+1. Currently, whenever a new value is deleted or added to page, I have to write the whole updated page
+back to the file, which is not efficient enough. This is because of the way
+my page is serialized, it's always slot1 - data1 then slot2 - data2 for value 1, 2, 3,..., so whenever a value is 
+deleted, then it seems like every data in the underlying file must be shifted. For adding new value,
+this is easier to handle.
+2. Whenever I read page from file, then we have to retrieve data from the underlying file. What I can do
+is have my HeapFile struct holds a hashmap of page id to the real page, so that we don't have to access
+memory and reconstruct the page from scratch.
+
+My experience with the milestone:
+- This project takes me about 10-12 hours, a bit longer than the PG milestone because the guidance was a lot more vague
+so I didn't have a clear direction in the start and tried out many things that didn't work out. It's good lessons to learn
+though. However, having big conceptual misunderstanding and having to go on Ed and waiting for answers to all of my questions 
+can be very frustrating and time-consuming, because my coding just keeps getting interrupted as more questions come up and
+I can't refer to the project description to answer it myself.
+Maybe the project description can be clearer next time.
+
+
