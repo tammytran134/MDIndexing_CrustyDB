@@ -99,4 +99,5 @@ liked/disliked on the milestone.
 - If you know some part of the milestone is incomplete, write up what parts are
 not working, how close you think you are, and what part(s) you got stuck on.
 
-
+## Additional Tips
+If you run `cargo test -p queryexe` before implementing anything, you will see 33 passed tests. This is because several operators have been implemented. Your goal is to implement aggregate and join to pass the rest of the test cases without breaking other passed tests. If you want to run test cases under a particular operator - use `cargo test -p queryexe opiterator::<op to test>` , e.g. `cargo test -p queryexe opiterator::join`
