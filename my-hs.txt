@@ -13,6 +13,12 @@ ContainerID and SerializedHeapFile struct (which contains the path to the underl
 This map is primarily used in all update, insert, delete value functions to modify the heapfile
 because we can access the underlying File directly from there
 
+Style:
+When running rust clippy, there will be an omit return warning but I prefer to have
+my return statement there.
+Also, the function get_page_id, which is provided in source code, is never used
+but I just leave it there.
+
 Future optimization:
 1. Currently, whenever a new value is deleted or added to page, I have to write the whole updated page
 back to the file, which is not efficient enough. This is because of the way
