@@ -140,7 +140,7 @@ mod test {
 
         Ok(SeqScan::new(sm, table, TABLE, &cid, tid))
     }
-
+    
     #[test]
     fn test_open() -> Result<(), CrustyError> {
         let mut scan = get_scan()?;

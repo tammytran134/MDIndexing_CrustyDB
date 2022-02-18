@@ -89,6 +89,7 @@ mod test {
         TupleIterator::new(tuples, schema)
     }
 
+
     #[test]
     fn test_open() -> Result<(), CrustyError> {
         let mut ti = get_tuple_iterator();
@@ -109,12 +110,14 @@ mod test {
         Ok(())
     }
 
+
     #[test]
     #[should_panic]
     fn test_next_not_open() {
         let mut ti = get_tuple_iterator();
         ti.next().unwrap();
     }
+
 
     #[test]
     fn test_close() -> Result<(), CrustyError> {

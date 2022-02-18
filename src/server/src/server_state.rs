@@ -102,10 +102,11 @@ impl ServerState {
         info!("Shutting down");
         debug!("Sending terminate message to all workers.");
         let db_map = self.id_to_db.read().unwrap();
+
+        let filepath = format!("{}/databases", self.storage_path);
+        fs::create_dir_all(&filepath)?;
         for (_id, dbstate) in db_map.iter() {
             let name = &dbstate.name;
-            let filepath = format!("{}/databases", self.storage_path);
-            fs::create_dir_all(&filepath)?;
             let filename = format!("{}/{}", filepath, name);
             serde_json::to_writer(fs::File::create(filename).expect("error creating file"),
                                   &dbstate.database)
@@ -166,25 +167,32 @@ impl ServerState {
     }
 
     pub fn close_client_connection(&self, client_id: u64) {
-        // indicate DB this client is disconnecting
-        let db_id_ref = self.active_connections.read().unwrap();
-        match db_id_ref.get(&client_id) {
-            Some(db_id) => {
-                let db_ref = self.id_to_db.read().unwrap();
-                let db = db_ref.get(db_id).unwrap();
-                db.close_client_connection(client_id, self.metadata_path.clone());
-            }
-            None => {
-                debug!("Client was not connected to DB");
-            }
-        };
+        // putting read/write grabs in separate scopes to avoid the same thread 
+        // from write-starving active_connections using different scopes to allow 
+        // for parallelism during portions of this function
+        {
+            // indicate DB this client is disconnecting
+            let db_id_ref = self.active_connections.read().unwrap();
+            match db_id_ref.get(&client_id) {
+                Some(db_id) => {
+                    let db_ref = self.id_to_db.read().unwrap();
+                    let db = db_ref.get(db_id).unwrap();
+                    db.close_client_connection(client_id, self.metadata_path.clone());
+                }
+                None => {
+                    debug!("Client was not connected to DB");
+                }
+            };
+        }
 
-        // remove this client from active connections
-        self.active_connections.write().unwrap().remove(&client_id);
-        info!(
-            "Shutting down client connection with ID: {:?}...",
-            client_id
-        );
+        {
+            // remove this client from active connections
+            self.active_connections.write().unwrap().remove(&client_id);
+            info!(
+                "Shutting down client connection with ID: {:?}...",
+                client_id
+            );
+        }
     }
 
     /// Add workers to the worker queue

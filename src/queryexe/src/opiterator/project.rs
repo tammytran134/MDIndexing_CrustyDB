@@ -160,14 +160,14 @@ mod test {
         assert!(!project.open);
         Ok(())
     }
-
+    
     #[test]
     #[should_panic]
     fn test_rewind_not_open() {
         let mut project = get_project(vec![0]);
         project.rewind().unwrap();
     }
-
+    
     #[test]
     fn test_rewind() -> Result<(), CrustyError> {
         let mut project = get_project(vec![1, 2]);

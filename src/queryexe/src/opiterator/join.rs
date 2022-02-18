@@ -24,6 +24,8 @@ impl JoinPredicate {
     fn new(op: SimplePredicateOp, left_index: usize, right_index: usize) -> Self {
         panic!("TODO milestone op");
     }
+}
+
 
 /// Nested loop join implementation. (You can add any other fields that you think are neccessary)
 pub struct Join {
@@ -33,6 +35,8 @@ pub struct Join {
     left_child: Box<dyn OpIterator>,
     /// Right child node.
     right_child: Box<dyn OpIterator>,
+    /// Schema of the result.
+    schema: TableSchema,
 }
 
 impl Join {
@@ -74,6 +78,7 @@ impl OpIterator for Join {
         panic!("TODO milestone op");
     }
 
+    /// return schema of the result
     fn get_schema(&self) -> &TableSchema {
         &self.schema
     }
@@ -86,6 +91,7 @@ pub struct HashEqJoin {
     left_child: Box<dyn OpIterator>,
     right_child: Box<dyn OpIterator>,
 
+    schema: TableSchema,
 }
 
 impl HashEqJoin {

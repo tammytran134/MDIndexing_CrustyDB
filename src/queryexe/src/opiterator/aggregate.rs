@@ -35,9 +35,7 @@ impl Aggregator {
         groupby_fields: Vec<usize>,
         schema: &TableSchema,
     ) -> Self {
-        Self {
-            panic!("TODO milestone op");
-        }
+        panic!("TODO milestone op");
     }
 
 
