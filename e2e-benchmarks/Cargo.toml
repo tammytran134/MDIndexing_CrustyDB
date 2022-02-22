@@ -1,0 +1,18 @@
+[package]
+name = "e2e-benchmarks"
+version = "0.1.0"
+authors = ["Chris Marrero, Raul Castro Fernandez"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+common = { path = "../src/common" }
+utilities = { path = "../src/utilities" }
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "benchmain"
+harness = false

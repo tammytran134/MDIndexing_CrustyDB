@@ -8,4 +8,5 @@ members = [
     "src/txn_manager",
     "src/optimizer",
     "src/queryexe",
+    "src/utilities",
 ]
