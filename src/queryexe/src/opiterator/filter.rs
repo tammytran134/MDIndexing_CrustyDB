@@ -157,7 +157,7 @@ mod test {
         assert!(filter.open);
         Ok(())
     }
-
+    
     #[test]
     fn get_schema() {
         let filter = get_filter(0, SimplePredicateOp::Equals, Field::IntField(0));

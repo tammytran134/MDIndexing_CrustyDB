@@ -96,6 +96,8 @@ impl Executor {
                         let s = format!("{},", attr.name());
                         res.push_str(&s);
                     }
+                    //remove the last ,
+                    res.pop();
                     res.push('\n');
                 }
 
@@ -105,8 +107,12 @@ impl Executor {
                         let s = format!("{},", f.to_string());
                         res.push_str(&s);
                     }
+                    //remove the last ,
+                    res.pop();
                     res.push('\n');
                 }
+                //remove the last \n
+                res.pop();
                 self.close()?;
                 Ok(QueryResult::new(&res))
             }
@@ -226,6 +232,12 @@ impl Executor {
                 let (groupby_indices, groupby_names) =
                     Self::get_field_indices_names(group_by, child.get_schema())?;
                 let agg = Aggregate::new(
+                    groupby_indices,
+                    groupby_names,
+                    agg_indices,
+                    agg_names,
+                    ops,
+                    child,
                 );
                 Ok(Box::new(agg))
             }
@@ -242,11 +254,21 @@ impl Executor {
                     let left_index = Executor::get_field_index(left.column(), right_schema)?;
                     let right_index = Executor::get_field_index(right.column(), left_schema)?;
                     Ok(Box::new(Join::new(
+                        op.flip(),
+                        left_index,
+                        right_index,
+                        left_child,
+                        right_child,
                     )))
                 } else {
                     let left_index = Executor::get_field_index(left.column(), left_schema)?;
                     let right_index = Executor::get_field_index(right.column(), right_schema)?;
                     Ok(Box::new(Join::new(
+                        *op,
+                        left_index,
+                        right_index,
+                        left_child,
+                        right_child,
                     )))
                 }
             }
@@ -263,11 +285,21 @@ impl Executor {
                     let left_index = Executor::get_field_index(left.column(), right_schema)?;
                     let right_index = Executor::get_field_index(right.column(), left_schema)?;
                     Ok(Box::new(HashEqJoin::new(
+                        op.flip(),
+                        left_index,
+                        right_index,
+                        left_child,
+                        right_child,
                     )))
                 } else {
                     let left_index = Executor::get_field_index(left.column(), left_schema)?;
                     let right_index = Executor::get_field_index(right.column(), right_schema)?;
                     Ok(Box::new(HashEqJoin::new(
+                        *op,
+                        left_index,
+                        right_index,
+                        left_child,
+                        right_child,
                     )))
                 }
             }
