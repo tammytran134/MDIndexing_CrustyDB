@@ -10,3 +10,7 @@ members = [
     "src/queryexe",
     "src/utilities",
 ]
+exclude = [
+    "e2e-benchmarks",
+    "e2e-tests",
+]
