@@ -359,6 +359,15 @@ impl Field {
         }
     }
 
+    pub fn copy_field(&self) -> Self {
+        let field_copy;
+        match self {
+            Field::IntField(i) => {field_copy = Field::IntField(*i)},
+            Field::StringField(s) => {field_copy = Field::StringField(s.to_string())},
+        } 
+        field_copy      
+    }
+
     /// Unwraps integer fields.
     pub fn unwrap_int_field(&self) -> i32 {
         match self {
@@ -374,6 +383,13 @@ impl Field {
             _ => panic!("Expected String"),
         }
     }
+
+    pub fn is_int_field(&self) -> bool {
+        match self {
+            Field::IntField(i) => true,
+            Field::StringField(s) => false,
+        }         
+    }
 }
 
 impl fmt::Display for Field {
@@ -386,7 +402,7 @@ impl fmt::Display for Field {
 }
 
 /// Tuple type.
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone, Hash)]
 pub struct Tuple {
     /// Tuple data.
     pub field_vals: Vec<Field>,

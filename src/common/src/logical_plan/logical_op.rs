@@ -182,7 +182,7 @@ impl PredExpr {
 }
 
 /// Aggregation operations.
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Hash)]
 pub enum AggOp {
     Avg,
     Count,
