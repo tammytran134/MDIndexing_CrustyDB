@@ -8,4 +8,9 @@ members = [
     "src/txn_manager",
     "src/optimizer",
     "src/queryexe",
+    "src/utilities",
+]
+exclude = [
+    "e2e-benchmarks",
+    "e2e-tests",
 ]
