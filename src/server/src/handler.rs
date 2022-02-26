@@ -64,6 +64,7 @@ pub fn handle_client_request(mut stream: TcpStream, server_state: &'static Serve
                         std::process::exit(1);
                     }
                     Commands::QuietMode => {
+                        info!("Going to QuietMode");
                         quiet = true;
                         Response::QuietOk
                     }
@@ -78,8 +79,13 @@ pub fn handle_client_request(mut stream: TcpStream, server_state: &'static Serve
                                         let db_state = db_ref.get(db_id).unwrap();
                                         match conductor.run_sql(ast, db_state) {
                                             Ok(qr) => {
-                                                info!("Success running SQL query");
-                                                Response::QueryResult(qr)
+                                                if quiet {
+                                                    debug!("Query result is good. Sending QuietOK");
+                                                    Response::QuietOk
+                                                } else {
+                                                    info!("Success running SQL query");
+                                                    Response::QueryResult(qr)
+                                                }
                                             }
                                             Err(err) => {
                                                 info!("Error while executing SQL query");

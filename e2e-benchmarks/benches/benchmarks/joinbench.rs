@@ -17,6 +17,7 @@ fn bench_join_tiny(c: &mut Criterion) {
     let mut bt = Template::new();
 
     setup_tables(&mut bt, "tiny_data", "tiny_data");
+    bt.add_command(Commands::QuietMode);
     bt.add_command(Commands::ExecuteSQL(String::from(
         "select * from testA join testB on testA.a = testB.a",
     )));
@@ -28,6 +29,7 @@ fn bench_join_small(c: &mut Criterion) {
     let mut bt = Template::new();
 
     setup_tables(&mut bt, "small_data", "small_data");
+    bt.add_command(Commands::QuietMode);
     bt.add_command(Commands::ExecuteSQL(String::from(
         "select * from testA join testB on testA.a = testB.a",
     )));
@@ -39,6 +41,7 @@ fn bench_join_right(c: &mut Criterion) {
     let mut bt = Template::new();
 
     setup_tables(&mut bt, "right_data", "left_data");
+    bt.add_command(Commands::QuietMode);
     bt.add_command(Commands::ExecuteSQL(String::from(
         "select * from testA join testB on testA.a = testB.a",
     )));
@@ -50,6 +53,7 @@ fn bench_join_left(c: &mut Criterion) {
     let mut bt = Template::new();
 
     setup_tables(&mut bt, "right_data", "left_data");
+    bt.add_command(Commands::QuietMode);
     bt.add_command(Commands::ExecuteSQL(String::from(
         "select * from testB join testA on testB.a = testA.a",
     )));
@@ -61,6 +65,7 @@ fn bench_join_large(c: &mut Criterion) {
     let mut bt = Template::new();
 
     setup_tables(&mut bt, "large_data", "large_data");
+    bt.add_command(Commands::QuietMode);
     bt.add_command(Commands::ExecuteSQL(String::from(
         "select * from testA join testB on testB.a = testA.a",
     )));
