@@ -2,6 +2,7 @@ use escargot::CargoBuild;
 use std::io::{Read, Result, Write};
 use std::net::{Shutdown, TcpStream};
 use std::process::Child;
+use log::{debug, info};
 
 use common::commands::{Commands, Response};
 
@@ -49,14 +50,14 @@ impl ServerWrapper {
     }
 
     pub fn close_client(&mut self) {
-        println!("Sending close...");
+        info!("Sending close...");
         //self.run_command_without_out("\\close");
-        println!("Done...");
+        info!("Done...");
         self.stream
             .shutdown(Shutdown::Both)
             .expect("Shutdown occurred unsuccessfully");
         std::thread::sleep(std::time::Duration::from_millis(100));
-        println!("About to kill client/server");
+        info!("About to kill client/server");
         self.child.kill().unwrap();
     }
 
@@ -73,7 +74,7 @@ impl ServerWrapper {
 
     pub fn run_command_with_out(&mut self, command: &Commands) -> Response {
         // Send command
-        println!("-Running: {:?}", command);
+        debug!("-Running: {:?}", command);
         let bytes = serde_cbor::to_vec(command).unwrap();
         self.stream.write_all(&bytes).expect("Failed to write");
 
@@ -91,7 +92,13 @@ impl ServerWrapper {
     }
 
     pub fn run_command(&mut self, command: &Commands) -> &mut Self {
-        println!("{:?}", self.run_command_with_out(command));
+        let resp = self.run_command_with_out(command);
+        match resp {
+            Response::QuietOk => {},
+            _ => {
+                println!("{:?}", resp);
+            }
+        }
         self
     }
 }
