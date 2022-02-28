@@ -386,8 +386,8 @@ impl Field {
 
     pub fn is_int_field(&self) -> bool {
         match self {
-            Field::IntField(i) => true,
-            Field::StringField(s) => false,
+            Field::IntField(_) => true,
+            Field::StringField(_) => false,
         }         
     }
 }

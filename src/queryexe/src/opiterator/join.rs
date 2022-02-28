@@ -1,8 +1,6 @@
 use super::{OpIterator, TupleIterator};
 use common::{CrustyError, Field, SimplePredicateOp, TableSchema, Tuple};
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
-
 
 /// Compares the fields of two tuples using a predicate. (You can add any other fields that you think are neccessary)
 pub struct JoinPredicate {
@@ -14,7 +12,6 @@ pub struct JoinPredicate {
     right_index: usize,
 }
 
-
 impl JoinPredicate {
     /// Constructor that determines if two tuples satisfy the join condition.
     ///
@@ -24,7 +21,11 @@ impl JoinPredicate {
     /// * `left_index` - Index of the field to compare in the left tuple.
     /// * `right_index` - Index of the field to compare in the right tuple.
     fn new(op: SimplePredicateOp, left_index: usize, right_index: usize) -> Self {
-        Self {op, left_index, right_index}
+        Self {
+            op,
+            left_index,
+            right_index,
+        }
     }
     fn join(&self, left_tuple: &Tuple, right_tuple: &Tuple) -> bool {
         let left_field = left_tuple.get_field(self.left_index).unwrap();
@@ -32,7 +33,6 @@ impl JoinPredicate {
         self.op.compare(left_field, right_field)
     }
 }
-
 
 /// Nested loop join implementation. (You can add any other fields that you think are neccessary)
 pub struct Join {
@@ -71,10 +71,21 @@ impl Join {
     ) -> Self {
         let left_schema = left_child.get_schema().clone();
         let right_schema = right_child.get_schema().clone();
-        Self {predicate: JoinPredicate {op, left_index, right_index}, left_child, right_child,  
-        schema: TableSchema::merge(&left_schema, &right_schema), left_open: false, right_open: false,
-        curr_left: None, curr_right: None}
-    }         
+        Self {
+            predicate: JoinPredicate {
+                op,
+                left_index,
+                right_index,
+            },
+            left_child,
+            right_child,
+            schema: TableSchema::merge(&left_schema, &right_schema),
+            left_open: false,
+            right_open: false,
+            curr_left: None,
+            curr_right: None,
+        }
+    }
 }
 
 impl OpIterator for Join {
@@ -98,7 +109,7 @@ impl OpIterator for Join {
             self.curr_left = self.left_child.next()?;
             if self.curr_left.is_none() {
                 return Ok(res);
-            }          
+            }
         }
         while self.curr_right.is_some() && self.curr_left.is_some() {
             let left_tuple = self.curr_left.as_ref().unwrap();
@@ -145,7 +156,7 @@ impl OpIterator for Join {
 /// Hash equi-join implementation. (You can add any other fields that you think are neccessary)
 pub struct HashEqJoin {
     predicate: JoinPredicate,
-   
+
     left_child: Box<dyn OpIterator>,
     right_child: Box<dyn OpIterator>,
     curr_left: Option<Tuple>,
@@ -175,9 +186,20 @@ impl HashEqJoin {
     ) -> Self {
         let left_schema = left_child.get_schema().clone();
         let right_schema = right_child.get_schema().clone();
-        Self {predicate: JoinPredicate {op, left_index, right_index}, left_child, right_child, curr_left: None,
-            schema: TableSchema::merge(&left_schema, &right_schema), left_open: false, right_open: false,
-            join_map: HashMap::new()}
+        Self {
+            predicate: JoinPredicate {
+                op,
+                left_index,
+                right_index,
+            },
+            left_child,
+            right_child,
+            curr_left: None,
+            schema: TableSchema::merge(&left_schema, &right_schema),
+            left_open: false,
+            right_open: false,
+            join_map: HashMap::new(),
+        }
     }
 }
 
@@ -189,9 +211,10 @@ impl OpIterator for HashEqJoin {
         self.right_child.open()?;
         while let Some(right) = self.right_child.next()? {
             let right_field = right.get_field(self.predicate.right_index).unwrap();
-            self.join_map.entry(right_field.clone())
-            .or_default()
-            .push(right); 
+            self.join_map
+                .entry(right_field.clone())
+                .or_default()
+                .push(right);
         }
         self.curr_left = self.left_child.next()?;
         Ok(())
@@ -208,17 +231,21 @@ impl OpIterator for HashEqJoin {
         while self.curr_left.is_some() {
             let left = self.curr_left.as_ref().unwrap();
             let left_field = left.get_field(self.predicate.left_index).unwrap();
-            match self.join_map.get_mut(&left_field) {
-                None => {self.curr_left = self.left_child.next()?; return self.next();},
+            match self.join_map.get_mut(left_field) {
+                None => {
+                    self.curr_left = self.left_child.next()?;
+                    return self.next();
+                }
                 Some(right_matches) => {
                     let first_right_match = right_matches.pop();
-                    if first_right_match.is_none() {
-                        self.join_map.remove(&left_field);
+                    if first_right_match == None {
+                        self.join_map.remove(left_field);
                         return self.next();
+                    } else {
+                        res = Some(Tuple::merge(left, &first_right_match.unwrap()));
+                        return Ok(res);
                     }
-                    else {
-                        res = Some(Tuple::merge(&left, &first_right_match.unwrap())); return Ok(res);}
-                    }
+                }
             }
         }
         Ok(res)
@@ -314,7 +341,7 @@ mod test {
         let tuples = create_tuple_list(vec![
             vec![1, 2, 2, 3, 4], // 1 < 2, 3, 4, 5
             vec![1, 2, 3, 4, 5],
-            vec![1, 2, 4, 5, 6], 
+            vec![1, 2, 4, 5, 6],
             vec![1, 2, 5, 6, 7],
             vec![3, 4, 4, 5, 6], // 3 < 4, 5
             vec![3, 4, 5, 6, 7],
@@ -326,12 +353,12 @@ mod test {
     pub fn lt_or_eq_join() -> TupleIterator {
         let tuples = create_tuple_list(vec![
             vec![1, 2, 1, 2, 3], // 1 <= 1, 2, 3, 4, 5
-            vec![1, 2, 2, 3, 4], 
+            vec![1, 2, 2, 3, 4],
             vec![1, 2, 3, 4, 5],
-            vec![1, 2, 4, 5, 6], 
+            vec![1, 2, 4, 5, 6],
             vec![1, 2, 5, 6, 7],
             vec![3, 4, 3, 4, 5], // 3 <= 3, 4, 5
-            vec![3, 4, 4, 5, 6], 
+            vec![3, 4, 4, 5, 6],
             vec![3, 4, 5, 6, 7],
             vec![5, 6, 5, 6, 7], // 5 <= 5
         ]);
@@ -348,20 +375,8 @@ mod test {
         let s1 = Box::new(scan1());
         let s2 = Box::new(scan2());
         match ty {
-            JoinType::NestedLoop => Box::new(Join::new(
-                op,
-                left_index,
-                right_index,
-                s1,
-                s2,
-            )),
-            JoinType::HashEq => Box::new(HashEqJoin::new(
-                op,
-                left_index,
-                right_index,
-                s1,
-                s2,
-            )),
+            JoinType::NestedLoop => Box::new(Join::new(op, left_index, right_index, s1, s2)),
+            JoinType::HashEq => Box::new(HashEqJoin::new(op, left_index, right_index, s1, s2)),
         }
     }
 

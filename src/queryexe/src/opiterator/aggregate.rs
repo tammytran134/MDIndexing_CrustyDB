@@ -1,10 +1,10 @@
 use super::{OpIterator, TupleIterator};
 use common::{AggOp, Attribute, CrustyError, DataType, Field, TableSchema, Tuple};
-use std::cmp::{max, min};
-use std::i32::{MAX, MIN};
-use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
 use std::cmp::Ordering;
+use std::cmp::{max, min};
+use std::collections::HashMap;
+use std::i32::{MAX, MIN};
+use std::sync::{Arc, RwLock};
 
 /// Contains the index of the field to aggregate and the operator to apply to the column of each group. (You can add any other fields that you think are neccessary)
 #[derive(Clone, Copy, Hash)]
@@ -40,34 +40,35 @@ impl Aggregator {
         groupby_fields: Vec<usize>,
         schema: &TableSchema,
     ) -> Self {
-        Self {agg_fields, groupby_fields, schema: schema.clone(), 
-            group_map: HashMap::new(), agg_map: HashMap::new()}
+        Self {
+            agg_fields,
+            groupby_fields,
+            schema: schema.clone(),
+            group_map: HashMap::new(),
+            agg_map: HashMap::new(),
+        }
     }
 
     fn initialize_agg_field(agg_field: &AggregateField, is_int_field: bool) -> (Field, i32) {
         match agg_field.op {
             AggOp::Avg => (Field::IntField(0), 0),
             AggOp::Count => (Field::IntField(0), 0),
-            AggOp::Max => 
-            {
+            AggOp::Max => {
                 if is_int_field {
-                    return (Field::IntField(MIN), 0);
+                    (Field::IntField(MIN), 0)
+                } else {
+                    (Field::StringField("A".to_string()), 0)
                 }
-                else {
-                    return (Field::StringField("A".to_string()), 0);
-                }
-            },
-            AggOp::Min => 
-            {
+            }
+            AggOp::Min => {
                 if is_int_field {
-                    return (Field::IntField(MAX), 0);
+                    (Field::IntField(MAX), 0)
+                } else {
+                    (Field::StringField("Z".to_string()), 0)
                 }
-                else {
-                    return (Field::StringField("Z".to_string()), 0);
-                }
-            },
+            }
             AggOp::Sum => (Field::IntField(0), 0),
-        }        
+        }
     }
 
     fn get_bigger_string(s1: String, s2: String) -> String {
@@ -84,45 +85,92 @@ impl Aggregator {
         }
     }
 
-    fn modify_agg_field(agg_field: &AggregateField, curr_arg0: &common::Field, curr_arg1: &i32, field_val: &Field, is_int_field: bool) -> (Field, i32) {
+    fn modify_agg_field(
+        agg_field: &AggregateField,
+        curr_arg0: &common::Field,
+        curr_arg1: &i32,
+        field_val: &Field,
+        is_int_field: bool,
+    ) -> (Field, i32) {
         match agg_field.op {
-            AggOp::Avg => (Field::IntField(curr_arg0.unwrap_int_field() + field_val.unwrap_int_field()), 
-            (curr_arg1 + 1)),
+            AggOp::Avg => (
+                Field::IntField(curr_arg0.unwrap_int_field() + field_val.unwrap_int_field()),
+                (curr_arg1 + 1),
+            ),
             AggOp::Count => (Field::IntField(curr_arg0.unwrap_int_field() + 1), 0),
             AggOp::Max => {
                 if is_int_field {
-                    return (Field::IntField(max(curr_arg0.unwrap_int_field(), field_val.unwrap_int_field())), 0);
-                }
-                else {
-                    return (Field::StringField(Aggregator::get_bigger_string(curr_arg0.unwrap_string_field().to_string(), field_val.unwrap_string_field().to_string())), 0);
+                    (
+                        Field::IntField(max(
+                            curr_arg0.unwrap_int_field(),
+                            field_val.unwrap_int_field(),
+                        )),
+                        0,
+                    )
+                } else {
+                    (
+                        Field::StringField(Aggregator::get_bigger_string(
+                            curr_arg0.unwrap_string_field().to_string(),
+                            field_val.unwrap_string_field().to_string(),
+                        )),
+                        0,
+                    )
                 }
             }
-            AggOp::Min =>
-            {
+            AggOp::Min => {
                 if is_int_field {
-                    return (Field::IntField(min(curr_arg0.unwrap_int_field(), field_val.unwrap_int_field())), 0);
-                }
-                else {
-                    return (Field::StringField(Aggregator::get_smaller_string(curr_arg0.unwrap_string_field().to_string(), field_val.unwrap_string_field().to_string())), 0);
+                    (
+                        Field::IntField(min(
+                            curr_arg0.unwrap_int_field(),
+                            field_val.unwrap_int_field(),
+                        )),
+                        0,
+                    )
+                } else {
+                    (
+                        Field::StringField(Aggregator::get_smaller_string(
+                            curr_arg0.unwrap_string_field().to_string(),
+                            field_val.unwrap_string_field().to_string(),
+                        )),
+                        0,
+                    )
                 }
             }
-            AggOp::Sum => (Field::IntField(curr_arg0.unwrap_int_field() + field_val.unwrap_int_field()), 0),
-        }    
-    }
-
-    fn add_agg_to_agg_map(&mut self, agg_field: &AggregateField, is_int_field: bool, agg_indice: usize) {
-        self.agg_map.insert(agg_indice, Aggregator::initialize_agg_field(agg_field, is_int_field));
-    }
-
-    fn add_val_to_agg_map(&mut self, field_val: &Field, agg_field: &AggregateField, is_int_field: bool, agg_indice: usize) { //FIX
-        if !self.agg_map.contains_key(&agg_indice) {
-            self.add_agg_to_agg_map(&agg_field, is_int_field, agg_indice);
+            AggOp::Sum => (
+                Field::IntField(curr_arg0.unwrap_int_field() + field_val.unwrap_int_field()),
+                0,
+            ),
         }
-        let (curr_arg0, curr_arg1) = self.agg_map.get(&agg_indice).unwrap(); 
-        let new_agg_res = Aggregator::modify_agg_field(agg_field, curr_arg0, curr_arg1, field_val, is_int_field);
-        *self.agg_map.get_mut(&agg_indice).unwrap() = new_agg_res;     
     }
 
+    fn add_agg_to_agg_map(
+        &mut self,
+        agg_field: &AggregateField,
+        is_int_field: bool,
+        agg_indice: usize,
+    ) {
+        self.agg_map.insert(
+            agg_indice,
+            Aggregator::initialize_agg_field(agg_field, is_int_field),
+        );
+    }
+
+    fn add_val_to_agg_map(
+        &mut self,
+        field_val: &Field,
+        agg_field: &AggregateField,
+        is_int_field: bool,
+        agg_indice: usize,
+    ) {
+        //FIX
+        if !self.agg_map.contains_key(&agg_indice) {
+            self.add_agg_to_agg_map(agg_field, is_int_field, agg_indice);
+        }
+        let (curr_arg0, curr_arg1) = self.agg_map.get(&agg_indice).unwrap();
+        let new_agg_res =
+            Aggregator::modify_agg_field(agg_field, curr_arg0, curr_arg1, field_val, is_int_field);
+        *self.agg_map.get_mut(&agg_indice).unwrap() = new_agg_res;
+    }
 
     fn composite_groupby_fields_from_tuple(&self, tuple: &Tuple) -> Tuple {
         let mut res = Vec::new();
@@ -137,7 +185,7 @@ impl Aggregator {
         let mut agg_fields = Vec::new();
         let i = self.groupby_fields.len();
         for (j, agg_field) in self.agg_fields.iter().enumerate() {
-            let attribute = self.schema.get_attribute(i+j).unwrap();
+            let attribute = self.schema.get_attribute(i + j).unwrap();
             let is_int_field;
             match attribute.dtype() {
                 DataType::Int => is_int_field = true,
@@ -145,22 +193,39 @@ impl Aggregator {
             }
             agg_fields.push(Aggregator::initialize_agg_field(agg_field, is_int_field));
         }
-        self.group_map.insert(composite_groupby_fields, Arc::new(RwLock::new(agg_fields)));
+        self.group_map
+            .insert(composite_groupby_fields, Arc::new(RwLock::new(agg_fields)));
     }
-
 
     fn add_val_to_group_map(&mut self, composite_groupby_fields: Tuple, tuple: &Tuple) {
         if !self.group_map.contains_key(&composite_groupby_fields) {
             self.add_group_to_group_map(composite_groupby_fields.clone());
         }
         for (i, agg_field) in self.agg_fields.iter().enumerate() {
-            let (curr_arg0, curr_arg1) = self.group_map.get(&composite_groupby_fields).unwrap().read().unwrap().get(i).unwrap().clone();
-            let field_val = tuple.get_field(agg_field.field).unwrap();     
-            let new_agg_res = Aggregator::modify_agg_field(agg_field, &curr_arg0, &curr_arg1, field_val, field_val.is_int_field());
-            self.group_map.get(&composite_groupby_fields).unwrap().write().unwrap()[i] = new_agg_res;
+            let (curr_arg0, curr_arg1) = self
+                .group_map
+                .get(&composite_groupby_fields)
+                .unwrap()
+                .read()
+                .unwrap()
+                .get(i)
+                .unwrap()
+                .clone();
+            let field_val = tuple.get_field(agg_field.field).unwrap();
+            let new_agg_res = Aggregator::modify_agg_field(
+                agg_field,
+                &curr_arg0,
+                &curr_arg1,
+                field_val,
+                field_val.is_int_field(),
+            );
+            self.group_map
+                .get(&composite_groupby_fields)
+                .unwrap()
+                .write()
+                .unwrap()[i] = new_agg_res;
         }
     }
-
 
     /// Handles the creation of groups for aggregation.
     ///
@@ -174,10 +239,14 @@ impl Aggregator {
         if self.groupby_fields.is_empty() {
             for (i, single_agg_field) in self.agg_fields.clone().iter().enumerate() {
                 let field_value = tuple.get_field(single_agg_field.field).unwrap();
-                self.add_val_to_agg_map(field_value, single_agg_field, field_value.is_int_field(), i);
-            }            
-        }
-        else {
+                self.add_val_to_agg_map(
+                    field_value,
+                    single_agg_field,
+                    field_value.is_int_field(),
+                    i,
+                );
+            }
+        } else {
             let composite_groupby_fields = self.composite_groupby_fields_from_tuple(tuple);
             self.add_val_to_group_map(composite_groupby_fields, tuple);
         }
@@ -188,19 +257,22 @@ impl Aggregator {
             AggOp::Avg => {
                 if info == 0 {
                     Field::IntField(0)
-                }
-                else {
+                } else {
                     Field::IntField(field.unwrap_int_field() / info)
                 }
             }
             _ => field.copy_field(),
-        }     
+        }
     }
 
     fn get_agg_tuple(&self, field_vec: &Vec<(Field, i32)>) -> Tuple {
         let mut res = Vec::new();
         for (i, (field, info)) in field_vec.iter().enumerate() {
-            res.push(Aggregator::get_final_agg_res(field, *info, &self.agg_fields[i]));
+            res.push(Aggregator::get_final_agg_res(
+                field,
+                *info,
+                &self.agg_fields[i],
+            ));
         }
         Tuple::new(res)
     }
@@ -215,13 +287,12 @@ impl Aggregator {
                 let (field, info) = self.agg_map.get(&i).unwrap();
                 res_field.push(Aggregator::get_final_agg_res(field, *info, agg_field));
             }
-            TupleIterator::new(vec![Tuple::new(res_field)], self.schema.clone()) 
-        }
-        else {
+            TupleIterator::new(vec![Tuple::new(res_field)], self.schema.clone())
+        } else {
             let mut res_tuples = Vec::new();
             for (key, val) in self.group_map.iter() {
                 let agg_fields = self.get_agg_tuple(&val.read().unwrap());
-                res_tuples.push(Tuple::merge(&key, &agg_fields));
+                res_tuples.push(Tuple::merge(key, &agg_fields));
             }
             TupleIterator::new(res_tuples, self.schema.clone())
         }
@@ -265,36 +336,65 @@ impl Aggregate {
         ops: Vec<AggOp>,
         child: Box<dyn OpIterator>,
     ) -> Self {
-        let schema = Aggregate::get_schema_from_child(&groupby_indices, &groupby_names, &agg_indices, &agg_names, &ops, &child);
+        let schema = Aggregate::get_schema_from_child(
+            &groupby_indices,
+            &groupby_names,
+            &agg_indices,
+            &agg_names,
+            &ops,
+            &child,
+        );
         let mut agg_fields = Vec::new();
         for (i, agg_indice) in agg_indices.iter().enumerate() {
-            agg_fields.push(AggregateField {field: *agg_indice, op: ops[i]});
+            agg_fields.push(AggregateField {
+                field: *agg_indice,
+                op: ops[i],
+            });
         }
-        Self {gfroupby_fields: groupby_indices.clone(), agg_fields: agg_fields.clone(),
-            agg_iter: None, schema: schema.clone(), open: false, child, aggregator: Aggregator::new(agg_fields.clone(), groupby_indices.clone(), &schema)}
+        Self {
+            gfroupby_fields: groupby_indices.clone(),
+            agg_fields: agg_fields.clone(),
+            agg_iter: None,
+            schema: schema.clone(),
+            open: false,
+            child,
+            aggregator: Aggregator::new(agg_fields, groupby_indices, &schema),
+        }
     }
 
     fn get_agg_attribute_type(child_attribute: Attribute, op: AggOp) -> DataType {
         match op {
             AggOp::Avg => DataType::Int,
             AggOp::Count => DataType::Int,
-            AggOp::Max => child_attribute.clone().dtype,
-            AggOp::Min => child_attribute.clone().dtype,
+            AggOp::Max => child_attribute.dtype,
+            AggOp::Min => child_attribute.dtype,
             AggOp::Sum => DataType::Int,
         }
     }
 
-    fn get_schema_from_child(groupby_indices: &Vec<usize>, groupby_names: &Vec<&str>,         
-        agg_indices: &Vec<usize>, agg_names: &Vec<&str>, ops: &Vec<AggOp>, child: &Box<dyn OpIterator>) -> TableSchema {
+    fn get_schema_from_child(
+        groupby_indices: &Vec<usize>,
+        groupby_names: &Vec<&str>,
+        agg_indices: &Vec<usize>,
+        agg_names: &Vec<&str>,
+        ops: &Vec<AggOp>,
+        child: &Box<dyn OpIterator>,
+    ) -> TableSchema {
         let mut parent_schema = Vec::new();
         let child_schema = child.get_schema();
         for (i, groupby_indice) in groupby_indices.iter().enumerate() {
             let child_attribute = child_schema.get_attribute(*groupby_indice).unwrap();
-            parent_schema.push(Attribute::new(groupby_names[i].to_string(), child_attribute.clone().dtype));
+            parent_schema.push(Attribute::new(
+                groupby_names[i].to_string(),
+                child_attribute.clone().dtype,
+            ));
         }
         for (i, agg_indice) in agg_indices.iter().enumerate() {
             let child_attribute = child_schema.get_attribute(*agg_indice).unwrap();
-            parent_schema.push(Attribute::new(agg_names[i].to_string(), Aggregate::get_agg_attribute_type(child_attribute.clone(), ops[i])));
+            parent_schema.push(Attribute::new(
+                agg_names[i].to_string(),
+                Aggregate::get_agg_attribute_type(child_attribute.clone(), ops[i]),
+            ));
         }
         TableSchema::new(parent_schema)
     }
@@ -408,11 +508,7 @@ mod test {
         /// * `expected` - The expected result.
         fn test_no_group(op: AggOp, field: usize, expected: i32) -> Result<(), CrustyError> {
             let schema = TableSchema::new(vec![Attribute::new("agg".to_string(), DataType::Int)]);
-            let mut agg = Aggregator::new(
-                vec![AggregateField { field, op }],
-                Vec::new(),
-                &schema,
-            );
+            let mut agg = Aggregator::new(vec![AggregateField { field, op }], Vec::new(), &schema);
             let ti = tuples();
             for t in &ti {
                 agg.merge_tuple_into_group(t);
@@ -682,10 +778,30 @@ mod test {
             let mut result = iter_to_vec(&mut ai)?;
             result.sort();
             let expected = vec![
-                vec![Field::IntField(1), Field::IntField(3), Field::IntField(2), Field::IntField(2)],
-                vec![Field::IntField(1), Field::IntField(4), Field::IntField(1), Field::IntField(3)],
-                vec![Field::IntField(2), Field::IntField(4), Field::IntField(1), Field::IntField(4)],
-                vec![Field::IntField(2), Field::IntField(5), Field::IntField(2), Field::IntField(6)],
+                vec![
+                    Field::IntField(1),
+                    Field::IntField(3),
+                    Field::IntField(2),
+                    Field::IntField(2),
+                ],
+                vec![
+                    Field::IntField(1),
+                    Field::IntField(4),
+                    Field::IntField(1),
+                    Field::IntField(3),
+                ],
+                vec![
+                    Field::IntField(2),
+                    Field::IntField(4),
+                    Field::IntField(1),
+                    Field::IntField(4),
+                ],
+                vec![
+                    Field::IntField(2),
+                    Field::IntField(5),
+                    Field::IntField(2),
+                    Field::IntField(6),
+                ],
             ];
             assert_eq!(expected, result);
             ai.open()?;
