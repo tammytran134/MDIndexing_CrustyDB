@@ -110,6 +110,8 @@ pub fn parse_command(mut cmd: String) -> Option<Commands> {
         return Some(Commands::Test);
     } else if cmd == "\\shutdown" {
         return Some(Commands::Shutdown);
+    } else if cmd == "\\quiet" {
+        return Some(Commands::QuietMode);
     } else {
         info!("Invalid command received {}", cmd);
     }

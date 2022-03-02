@@ -5,6 +5,7 @@ use rand::Rng;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
+use log::{debug, info};
 
 pub struct Template {
     pub setup: Vec<Commands>,
@@ -40,9 +41,9 @@ impl Template {
     }
 
     pub fn show_configuration(&self) {
-        println!("setup: {:?}", &self.setup);
-        println!("commands: {:?}", &self.commands);
-        println!("cleanup: {:?}", &self.cleanup);
+        info!("setup: {:?}", &self.setup);
+        info!("commands: {:?}", &self.commands);
+        info!("cleanup: {:?}", &self.cleanup);
     }
 
     pub fn generate_random_table(&mut self, name: &str, columns: i32, rows: i32) -> Vec<Tuple> {
@@ -106,7 +107,7 @@ impl Template {
 
     pub fn run_setup(&mut self) {
         for command in self.setup.iter() {
-            println!("Running command: {:?}", command);
+            debug!("Running command: {:?}", command);
             self.server.run_command(command);
         }
     }
@@ -122,7 +123,7 @@ impl Template {
     pub fn run_commands(&mut self) {
         //println!("# commands to run: {:?}", self.commands);
         for command in self.commands.iter() {
-            println!("Running command: {:?}", command);
+            debug!("Running command: {:?}", command);
             self.server.run_command(command);
         }
     }
@@ -130,7 +131,7 @@ impl Template {
     pub fn run_cleanup(&mut self) {
         // println!("rust_cleanup...");
         for command in self.cleanup.iter() {
-            println!("Running command: {:?}", command);
+            info!("Running command: {:?}", command);
             self.server.run_command(command);
         }
         // send reset command
