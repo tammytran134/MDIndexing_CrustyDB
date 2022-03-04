@@ -208,9 +208,9 @@ impl fmt::Display for AggOp {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FieldIdentifier {
     /// The name of table that column is present in.
-    table: String,
+    pub table: String,
     /// The name of the column being referenced.
-    column: String,
+    pub column: String,
     /// The alias given to the output field.
     alias: Option<String>,
     /// An aggregate operation performed on column.
