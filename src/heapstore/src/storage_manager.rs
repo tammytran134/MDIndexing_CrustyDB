@@ -165,12 +165,12 @@ impl StorageTrait for StorageManager {
     /// Create a new storage manager that will use storage_path as the location to persist data
     /// (if the storage manager persists records on disk)
     fn new(storage_path: String) -> Self {
-        let container_dir = format!("{}/containers", &storage_path);
+        let container_dir = format!("{}/containers/", &storage_path);
         fs::create_dir_all(container_dir).expect("Can't create sm container directory");
         let mut hf_serialized_map = HashMap::new();
         let mut hf_map = HashMap::new();
         // Create a directory that holds information on containers and its location
-        let container_location_dir = format!("{}/containers_location", &storage_path);
+        let container_location_dir = format!("{}/containers_location/", &storage_path);
         if Path::new(&container_location_dir).exists() {
             let locations = fs::read_dir(&container_location_dir).unwrap();
             for location in locations {
@@ -423,8 +423,10 @@ impl StorageTrait for StorageManager {
 
     /// Testing utility to reset all state associated the storage manager.
     fn reset(&self) -> Result<(), CrustyError> {
-        fs::remove_dir_all(&self.storage_path).expect("Can't remove sm directory");
-        fs::create_dir(&self.storage_path).expect("Can't create sm directory");
+        if Path::new(&self.storage_path).exists() {
+            fs::remove_dir_all(&self.storage_path).expect("Can't remove sm directory");
+        }
+        fs::create_dir_all(&self.storage_path).expect("Can't create sm directory");
         Ok(())
     }
 
@@ -440,6 +442,7 @@ impl StorageTrait for StorageManager {
     /// that can be used to create a HeapFile object pointing to the same data. You don't need to
     /// worry about recreating read_count or write_count.
     fn shutdown(&self) {
+        println!("COMES TO SHUTDOWN");
         info!("Shutting down");
         if self.is_temp {
             self.reset().expect("Can't reset");
@@ -447,6 +450,7 @@ impl StorageTrait for StorageManager {
         }
         let filepath = format!("{}/containers_location", &self.storage_path);
         fs::create_dir_all(&filepath).expect("Can't create sm directory");
+        println!("PASS SHUTDOWN");
         for (container_id, serialized_hf) in self.hf_serialized_map.read().unwrap().iter() {
             let name = container_id.to_string();
             let filename = format!("{}/{}", filepath, name);

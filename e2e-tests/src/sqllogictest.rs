@@ -31,6 +31,7 @@ mod test {
             Path::new(E2E_DIR).join("testdata").join("join1")
         };
         assert!(path.exists());
+        println!("Path is {:?}", path);
         let res = run_sqllogictests_in_file(&path);
         let is_ok = res.is_ok();
         match res {
