@@ -78,8 +78,8 @@ criterion_group! {
     config = Criterion::default().sample_size(10);
     targets =
     bench_join_tiny,
-    //bench_join_small,
-    //bench_join_right,
-    //bench_join_left,
-    //bench_join_large,
+    bench_join_small,
+    bench_join_right,
+    bench_join_left,
+    bench_join_large,
 }
