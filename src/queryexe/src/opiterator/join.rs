@@ -216,6 +216,7 @@ impl OpIterator for HashEqJoin {
                 .or_default()
                 .push(right);
         }
+        //println!("{:?}", self.join_map);
         self.curr_left = self.left_child.next()?;
         Ok(())
     }
