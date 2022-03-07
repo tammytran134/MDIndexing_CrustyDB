@@ -424,7 +424,12 @@ impl StorageTrait for StorageManager {
     /// Testing utility to reset all state associated the storage manager.
     fn reset(&self) -> Result<(), CrustyError> {
         if Path::new(&self.storage_path).exists() {
-            fs::remove_dir_all(&self.storage_path).expect("Can't remove sm directory");
+            println!("PATH IS {}", &self.storage_path);
+            match fs::remove_dir_all(&self.storage_path) {
+                Ok(_) => {},
+                Err(err) => {println!("ERROR IS {:?}", err)},
+            }
+            // fs::remove_dir_all(&self.storage_path).expect("Can't remove sm directory");
         }
         fs::create_dir_all(&self.storage_path).expect("Can't create sm directory");
         Ok(())
