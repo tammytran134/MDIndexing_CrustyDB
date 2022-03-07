@@ -62,13 +62,31 @@ impl Optimizer {
                 left_table,
                 right_table,
             }) => {
-                Ok(PhysicalOp::NestedLoopJoin(PhysicalNestedLoopJoinNode {
-                    left,
-                    right,
+                // Ok(PhysicalOp::HashJoin(PhysicalHashJoinNode {
+                //     left,
+                //     right,
+                //     op,
+                //     left_table,
+                //     right_table,
+                //     hash_table_state_id: 0,
+                //     hash_table_key: FieldIdentifier::new("default_name", "default_column"),
+                // }))
+                Ok(PhysicalOp::HashJoin(PhysicalHashJoinNode {
+                    left: right,
+                    right: left,
                     op,
-                    left_table,
-                    right_table,
+                    left_table: right_table,
+                    right_table: left_table,
+                    hash_table_state_id: 0,
+                    hash_table_key: FieldIdentifier::new("default_name", "default_column"),
                 }))
+                // Ok(PhysicalOp::NestedLoopJoin(PhysicalNestedLoopJoinNode {
+                //     left,
+                //     right,
+                //     op,
+                //     left_table,
+                //     right_table,
+                // }))                
             },
             LogicalOp::Filter(FilterNode { table, predicate }) => {
                 Ok(PhysicalOp::Filter(PhysicalFilterNode { table, predicate }))

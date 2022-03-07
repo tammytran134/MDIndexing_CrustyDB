@@ -1,0 +1,15 @@
+Solution:
+So the most important design choices I have to make is how to add data and delete data, and I try to use sorting to restrict data shifting as much as possible:
+1. Add data: My header contains a hashmap of slot id and their corresponding position (start and end offset) in the page's data array, when a new value is added, we first:
+    - Find first free space by sorting all the current slots by their start offset to figure out empty space within the page, we will put the data in the first empty space from end of page
+        In the case that there's still space but the page is too fragmented  so there's no empty space, then I call fix_fragmentation function to shift all current value to end of page to create empty space
+    - If there's not enough space, then we don't add the value, otherwise, we generate new slot id by also sorting current slots by their slot id to find the smallest available slot id,
+    and add the value at the empty space
+    => For average case, the sorting of n values will take O(nlogn), but when there's data shifting, then the performance is worse due to lots of memory access.
+2. Delete data: When we want delete a value, we simply delete its key-value pair in the hashmap and doesn't do any data shifting => Constant time
+3. Get data: Constant time lookup in hashmap
+
+My experience with the milestone:
+- I spent about 4-5 days doing the project at an average pace, so I feel like the 2-week deadline is a bit of a stretch. 
+- I like that the spec and the test give enough guidance so that we know what we should think about when going about designing everything,
+but more tests need to be added because I find out that even when my code was not perfect, it still managed to pass all tests.
