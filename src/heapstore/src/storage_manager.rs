@@ -426,6 +426,7 @@ impl StorageTrait for StorageManager {
         if Path::new(&self.storage_path).exists() {
             println!("PATH IS {}", &self.storage_path);
             fs::remove_dir_all(&self.storage_path);
+            // Somethingsomething
             // match fs::remove_dir_all(&self.storage_path) {
             //     Ok(_) => {},
             //     Err(err) => {println!("ERROR IS {:?}", err)},
