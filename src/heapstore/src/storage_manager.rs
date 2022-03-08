@@ -425,10 +425,11 @@ impl StorageTrait for StorageManager {
     fn reset(&self) -> Result<(), CrustyError> {
         if Path::new(&self.storage_path).exists() {
             println!("PATH IS {}", &self.storage_path);
-            match fs::remove_dir_all(&self.storage_path) {
-                Ok(_) => {},
-                Err(err) => {println!("ERROR IS {:?}", err)},
-            }
+            fs::remove_dir_all(&self.storage_path);
+            // match fs::remove_dir_all(&self.storage_path) {
+            //     Ok(_) => {},
+            //     Err(err) => {println!("ERROR IS {:?}", err)},
+            // }
             // fs::remove_dir_all(&self.storage_path).expect("Can't remove sm directory");
         }
         fs::create_dir_all(&self.storage_path).expect("Can't create sm directory");
