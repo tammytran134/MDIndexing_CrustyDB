@@ -114,13 +114,10 @@ impl DatabaseState {
     }
 
     pub fn load(filename: PathBuf, sm: &'static StorageManager) -> Result<Self, CrustyError> {
-        let database:Database = Database::load(filename);
+        let database: Database = Database::load(filename);
         let db_name: String = database.name.clone();
         let db_id = DatabaseState::get_database_id(&db_name);
-        debug!(
-            "Loading DatabaseState; name: {} id: {}",
-            db_name, db_id
-        );
+        debug!("Loading DatabaseState; name: {} id: {}", db_name, db_id);
 
         let db_state = DatabaseState {
             id: db_id,

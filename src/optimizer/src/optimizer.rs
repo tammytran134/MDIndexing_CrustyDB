@@ -86,8 +86,8 @@ impl Optimizer {
                 //     op,
                 //     left_table,
                 //     right_table,
-                // }))                
-            },
+                // }))
+            }
             LogicalOp::Filter(FilterNode { table, predicate }) => {
                 Ok(PhysicalOp::Filter(PhysicalFilterNode { table, predicate }))
             }

@@ -1,11 +1,11 @@
 use crate::serverwrapper::ServerWrapper;
 use common::commands::{parse_command, Commands, Response};
 use common::prelude::*;
+use log::{debug, info};
 use rand::Rng;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
-use log::{debug, info};
 
 pub struct Template {
     pub setup: Vec<Commands>,

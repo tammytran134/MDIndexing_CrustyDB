@@ -1,8 +1,8 @@
 use escargot::CargoBuild;
+use log::{debug, info};
 use std::io::{Read, Result, Write};
 use std::net::{Shutdown, TcpStream};
 use std::process::Child;
-use log::{debug, info};
 
 use common::commands::{Commands, Response};
 
@@ -81,9 +81,9 @@ impl ServerWrapper {
         // Read server response
         // the buffer must be large enough to hold all result bytes,
         // otherwise there will be a parsing error
-        let mut data = [0; 1024*1024];
+        let mut data = [0; 1024 * 1024];
         let size = self.stream.read(&mut data[..]).unwrap();
-  
+
         if size == 0 {
             Response::Err(String::from("Empty Response"))
         } else {
@@ -94,7 +94,7 @@ impl ServerWrapper {
     pub fn run_command(&mut self, command: &Commands) -> &mut Self {
         let resp = self.run_command_with_out(command);
         match resp {
-            Response::QuietOk => {},
+            Response::QuietOk => {}
             _ => {
                 println!("{:?}", resp);
             }

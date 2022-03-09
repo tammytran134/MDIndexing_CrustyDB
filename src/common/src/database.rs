@@ -6,10 +6,10 @@ use crate::prelude::*;
 use crate::table::*;
 use catalog::Catalog;
 use std::collections::HashMap;
-use std::sync::atomic::Ordering;
-use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
 use std::fs::File;
+use std::path::PathBuf;
+use std::sync::atomic::Ordering;
+use std::sync::{Arc, RwLock};
 
 /// The actual database.
 #[derive(Clone, Serialize, Deserialize)]
@@ -62,7 +62,10 @@ impl Catalog for Database {
                 }
             }
         }
-        debug!("Unable to find table `{}`. Named Containers: {:?}", name, containers);
+        debug!(
+            "Unable to find table `{}`. Named Containers: {:?}",
+            name, containers
+        );
         None
     }
 

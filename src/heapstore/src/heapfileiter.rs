@@ -44,7 +44,8 @@ impl Iterator for HeapFileIterator {
         }
         match self.end_of_page {
             //None => {self.curr_pg_iter = Arc::new(Some(self.hf.read_page_from_file(*self.index).unwrap().into_iter()))},
-            true => { // if at end of current page, set curr_pg_iter to the iterator of the next page
+            true => {
+                // if at end of current page, set curr_pg_iter to the iterator of the next page
                 self.curr_pg_iter = self.hf.read_page_from_file(self.index).unwrap().into_iter();
                 self.end_of_page = false
             }
@@ -53,8 +54,9 @@ impl Iterator for HeapFileIterator {
         {
             match &self.curr_pg_iter.next() {
                 Some(data) => Some(data.clone()),
-                None => { // If at end of page, increment index to access next page and call next recursively
-                    self.index += 1; 
+                None => {
+                    // If at end of page, increment index to access next page and call next recursively
+                    self.index += 1;
                     self.end_of_page = true;
                     self.next()
                 }

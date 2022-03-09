@@ -24,7 +24,7 @@ pub struct StorageManager {
     // Mapping of Container to a serializable struct
     pub hf_serialized_map: Arc<RwLock<HashMap<ContainerId, SerializedHeapFile>>>,
     #[serde(skip)]
-    // Mapping of Container to its corresponding HeapFile struct 
+    // Mapping of Container to its corresponding HeapFile struct
     hf_map: Arc<RwLock<HashMap<ContainerId, HeapFile>>>,
     /// Path to database metadata files.
     pub storage_path: String,

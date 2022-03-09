@@ -273,7 +273,10 @@ impl Executor {
                 }
             }
             PhysicalOp::HashJoin(PhysicalHashJoinNode {
-                left, right, op, left_table, right_table,..
+                left,
+                right,
+                op,
+                ..
             }) => {
                 let left_child = children.next().ok_or_else(|| err.clone())??;
                 let left_schema = left_child.get_schema();

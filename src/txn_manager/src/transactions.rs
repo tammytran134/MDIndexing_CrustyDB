@@ -56,4 +56,3 @@ impl Transaction {
         Ok(())
     }
 }
-

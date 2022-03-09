@@ -362,10 +362,10 @@ impl Field {
     pub fn copy_field(&self) -> Self {
         let field_copy;
         match self {
-            Field::IntField(i) => {field_copy = Field::IntField(*i)},
-            Field::StringField(s) => {field_copy = Field::StringField(s.to_string())},
-        } 
-        field_copy      
+            Field::IntField(i) => field_copy = Field::IntField(*i),
+            Field::StringField(s) => field_copy = Field::StringField(s.to_string()),
+        }
+        field_copy
     }
 
     /// Unwraps integer fields.
@@ -388,7 +388,7 @@ impl Field {
         match self {
             Field::IntField(_) => true,
             Field::StringField(_) => false,
-        }         
+        }
     }
 }
 

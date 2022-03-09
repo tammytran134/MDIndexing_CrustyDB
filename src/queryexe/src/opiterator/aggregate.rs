@@ -162,7 +162,6 @@ impl Aggregator {
         is_int_field: bool,
         agg_indice: usize,
     ) {
-        //FIX
         if !self.agg_map.contains_key(&agg_indice) {
             self.add_agg_to_agg_map(agg_field, is_int_field, agg_indice);
         }

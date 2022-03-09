@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
 use std::io::Read;
+use std::path::Path;
 use std::sync::{Arc, RwLock};
 
 use crate::database_state::DatabaseState;
@@ -108,9 +108,11 @@ impl ServerState {
         for (_id, dbstate) in db_map.iter() {
             let name = &dbstate.name;
             let filename = format!("{}/{}", filepath, name);
-            serde_json::to_writer(fs::File::create(filename).expect("error creating file"),
-                                  &dbstate.database)
-                .expect("error deserializing db");
+            serde_json::to_writer(
+                fs::File::create(filename).expect("error creating file"),
+                &dbstate.database,
+            )
+            .expect("error deserializing db");
         }
 
         let mut workers = self.workers.lock().unwrap();
@@ -167,8 +169,8 @@ impl ServerState {
     }
 
     pub fn close_client_connection(&self, client_id: u64) {
-        // putting read/write grabs in separate scopes to avoid the same thread 
-        // from write-starving active_connections using different scopes to allow 
+        // putting read/write grabs in separate scopes to avoid the same thread
+        // from write-starving active_connections using different scopes to allow
         // for parallelism during portions of this function
         {
             // indicate DB this client is disconnecting

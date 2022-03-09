@@ -1,0 +1,36 @@
+1. Implementation:
+For Nested Loop Join, the most important design decision I have to make is when to call next on the left child,
+because current left child tuple can be matched serially to multiple right child tuples, so I keep 2 fields 
+in the Join struct: curr_left, which represents current left tuple we are evaluating join on, and curr_right,
+which represents current right tuple we are evaluating join on.
+So the algorithm for Join next() is this:
+1. Check if curr_right is None:
+    - If yes, then we need to rewind right_child to point to its first tuple again, and check if left_child.next() is None,
+        If yes, this means we are done iterating through both tables for Join and can return None.
+        If No, then we get the new left tuple to iterate Join on.
+    - If no, this means that we don't have to call next on left child and can evaluate Join on curr_left and curr_right.
+        If so, we enter a loop and keep calling next on curr_right until the join condition matches for curr_left and curr_right
+
+For Hash Join, the most important design decision is to build the join_map, which maps different values of Join_field of right table to
+a list of corresponding tuples. So when we iterate on left, we access the map with the left tuple's join_field value and just take
+the first tuple in the join_map that matches, and delete that tuple to prevent duplicate.
+
+For Aggregate, the main work lies in implementing the Aggregator. So I add 2 fields: group_map and agg_map.
+group_map is for when there's a group by statement in the query, while agg_map is when there's none.
+Agg_map maps the key - which is the index of the field being aggregated, and its current value: a tuple of (Field, i32).
+Field is just to denote current aggregate value - e.g: curr sum, curr min, curr max,... Then second field is specifically for 
+AVG - when we need to keep track of how many tuples we have aggregated over.
+Group_map maps the key - which is a tuple of different values of group by:
+For example, if we have select avg(a), min(b) from table group by c, d
+Then a key in the group map will be of the form: (c, d) for all different combinations of c and d values
+Then its values are just a list of (Field, i32), where each element represents the aggregate value (e.g: avg(a), min(b))
+
+**Note: I've tried to clean up my code as much as possible, but clippy recommends me to use array instead of vectors for
+certain structs and I don't like it. Also, it warns me about a loop that never loops but I'm pretty that's not the case.
+Other than that, there's not many warnings left.
+
+2. Time and feedback:
+- This takes me about 15 hours, which I think is reasonable, but I think the instructions are so vague
+that I spent so much time looking at the tests to understand what I have to do, although I think
+the instructions could have been so much clearer by providing examples. Also, I think code documentation
+is not that clear either.
