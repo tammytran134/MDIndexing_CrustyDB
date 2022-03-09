@@ -1,0 +1,10 @@
+1. Strategy: I just simply change every Join execution from NLJ to Hash Join in optimizer.rs.
+2. I spent about 2 hours every day debugging errors that I couldn't see on my computer,
+then only after going to OH that I learnt to run it on CSIL, and even after the tests
+have passed on both my local computer and CSIL, it still crashed on Gradescope due to
+stack overflow issues. I honestly don't know how I'm expected to debug effectively 
+without being able to see the log or error code of my Gradescope submission, 
+so this whole milestone is a huge waste for me because I didn't get
+to do much of the optimization work at all. If possible, I would like to ask
+that my perf test be evaluated manually by running on CSIL because I know 
+they would all pass.
