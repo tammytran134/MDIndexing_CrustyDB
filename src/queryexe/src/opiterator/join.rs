@@ -164,6 +164,7 @@ pub struct HashEqJoin {
     left_open: bool,
     right_open: bool,
     join_map: HashMap<Field, Vec<Tuple>>,
+    curr_idx: usize,
 }
 
 impl HashEqJoin {
@@ -199,6 +200,7 @@ impl HashEqJoin {
             left_open: false,
             right_open: false,
             join_map: HashMap::new(),
+            curr_idx: 0,
         }
     }
 }
@@ -235,17 +237,21 @@ impl OpIterator for HashEqJoin {
             match self.join_map.get_mut(left_field) {
                 None => {
                     self.curr_left = self.left_child.next()?;
+                    self.curr_idx = 0;
                     return self.next();
                 }
                 Some(right_matches) => {
-                    let first_right_match = right_matches.pop();
-                    if first_right_match == None {
-                        self.join_map.remove(left_field);
+                    //let first_right_match = right_matches.pop()];
+                    let len_match = right_matches.len();
+                    if self.curr_idx == len_match {
+                        self.curr_left = self.left_child.next()?;
+                        self.curr_idx = 0;
                         return self.next();
-                    } else {
-                        res = Some(Tuple::merge(left, &first_right_match.unwrap()));
-                        return Ok(res);
                     }
+                    let first_right_match = &right_matches[self.curr_idx];
+                    res = Some(Tuple::merge(left, &first_right_match));
+                    self.curr_idx += 1;
+                    return Ok(res);
                 }
             }
         }
