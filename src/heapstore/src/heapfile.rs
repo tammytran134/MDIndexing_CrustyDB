@@ -6,6 +6,8 @@ use std::os::unix::prelude::FileExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU16, Ordering};
 use std::sync::{Arc, RwLock};
+use std::collections::HashMap;
+use common::md_index::KdTree;
 //use std::io::prelude::*;
 //use std::io::BufWriter;
 //use std::io::{Seek, SeekFrom};
@@ -21,14 +23,27 @@ use std::sync::{Arc, RwLock};
 /// about persisting read_count/write_count during serialization.
 ///
 /// Your code should persist what information is needed to recreate the heapfile.
-///
+
+pub struct MdIndex {
+    pub tree: KdTree,
+    pub name: String,
+}
 pub(crate) struct HeapFile {
     pub num_page: Arc<RwLock<PageId>>,
     pub heap_file: Arc<RwLock<File>>,
-    // pub page_map: Arc<RwLock<HashMap<PageId, Page>>>,
+    pub index_map: Arc<RwLock<HashMap<String, Arc<RwLock<MdIndex>>>>>,
     // The following are for profiling/ correctness checks
     pub read_count: AtomicU16,
     pub write_count: AtomicU16,
+}
+
+impl MdIndex {
+    pub fn new(tree_dim: usize, name: String, idx_fields: Vec<usize>) -> Self {
+        Self {
+            tree: KdTree::new(tree_dim, idx_fields.clone()),
+            name,
+        }
+    }
 }
 
 /// HeapFile required functions
@@ -37,18 +52,6 @@ impl HeapFile {
     pub(crate) fn get_num_page_from_file(file_path: &Path) -> PageId {
         u16::try_from(metadata(file_path).unwrap().len() as usize / PAGE_SIZE).unwrap()
     }
-
-    // pub(crate) fn deserialize_page_from_file(num_page: PageId, file: &File) -> HashMap<PageId, Page> {
-    //     let mut res = HashMap::new();
-    //     for i in 0..num_page {
-    //         let start_offset = usize::from(i) * PAGE_SIZE;
-    //         let mut buf = [0u8; PAGE_SIZE];
-    //         file.read_at(&mut buf, start_offset.try_into().unwrap());
-    //         let page = Page::from_bytes(&buf);
-    //         res.insert(i, page);
-    //     }
-    //     res
-    // }
 
     /// Create a new heapfile for the given path and container Id. Return Result<Self> if able to create.
     /// Errors could arise from permissions, space, etc when trying to create the file used by HeapFile.
@@ -70,18 +73,10 @@ impl HeapFile {
             }
         };
         let num_page = HeapFile::get_num_page_from_file(&file_path);
-        // let mut page_map = HashMap::new();
-        // for i in 0..num_page {
-        //     let start_offset = usize::from(i) * PAGE_SIZE;
-        //     let mut buf = [0u8; PAGE_SIZE];
-        //     file.read_at(&mut buf, start_offset.try_into().unwrap());
-        //     let page = Page::from_bytes(&buf);
-        //     page_map.insert(i, page);
-        // }
         Ok(HeapFile {
             num_page: Arc::new(RwLock::new(num_page)),
             heap_file: Arc::new(RwLock::new(file)),
-            //page_map: Arc::new(RwLock::new(page_map)),
+            index_map: Arc::new(RwLock::new(HashMap::new())),
             read_count: AtomicU16::new(0),
             write_count: AtomicU16::new(0),
         })

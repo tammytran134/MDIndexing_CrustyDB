@@ -1,0 +1,85 @@
+#V2
+RUST_LOG=debug \\r testdb
+\\r testdb
+\\r testdb 
+\\c testdb
+\\c testdb 
+create table test (a int primary key,b int)
+\\i csv/data.csv test
+\\i e2e-tests/csv/data.csv test
+\\createIndex md_index test (a,b)
+\\r testdb
+\\c testdb
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+\\createIndex md_index test (a,b)
+\\r testdb
+\\c testdb
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+\\createIndex md_index test (a,b)
+\\r testdb
+\\c testdb
+\\r testdb
+\\c testdb
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+\\createIndex md_index test (a,b)
+\\r testdb
+\\c testdb
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+\\createIndex md_index test (a,b)
+\\r testdb
+\\c testdb
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+\\createIndex md_index test (a,b)
+\\r testdb
+\\c testdb
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+\\createIndex md_index test (a,b)
+\\r testdb
+\\c testdb
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+select * from test;
+\\r testdb
+\\c testdb
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+\\createIndex md_index test (a,b)
+\\r testdb
+\\c testdb
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+\\r testdb 
+\\c testdb 
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+\\reset
+create table test (a int primary key,b int)
+\\r testdb
+\\c testdb
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+create table test (a int primary key,b int)
+\\r testdb
+\\c testdb
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+select * from test
+\\createIndex md_index test (a,b)
+\\reset
+\\r testdb
+\\c testdb
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+select * from test
+\\createIndex md_index test (a,b)
+\\r testdb
+\\c testdb
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+\\createIndex md_index test (a,b)

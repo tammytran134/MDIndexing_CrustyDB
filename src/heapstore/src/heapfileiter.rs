@@ -43,7 +43,6 @@ impl Iterator for HeapFileIterator {
             return None;
         }
         match self.end_of_page {
-            //None => {self.curr_pg_iter = Arc::new(Some(self.hf.read_page_from_file(*self.index).unwrap().into_iter()))},
             true => {
                 // if at end of current page, set curr_pg_iter to the iterator of the next page
                 self.curr_pg_iter = self.hf.read_page_from_file(self.index).unwrap().into_iter();

@@ -1,14 +1,13 @@
 use std::cmp::Ordering::{Less, Greater, Equal};
 use std::any::type_name;
-#[derive(Clone, PartialEq, PartialOrd, Copy)]
+#[derive(Clone, PartialEq, PartialOrd)]
 pub enum Type {
     Num(i64),
     Float(f64),
-    //Str(String),
+    Str(String),
 }
 
-//use Type::{Num, Float, Str};
-use Type::{Num, Float};
+use Type::{Num, Float, Str};
 #[derive(Clone, PartialEq, PartialOrd)]
 pub struct KdTree {
     pub dim: usize,
@@ -46,11 +45,11 @@ impl KdTree {
                             return false
                         }
                     },                
-                    // (Str(x), Str(y)) => {
-                    //     if !x.eq(y) {
-                    //         return false
-                    //     }
-                    // }, 
+                    (Str(x), Str(y)) => {
+                        if !x.eq(y) {
+                            return false
+                        }
+                    }, 
                     (_, _) => {
                         return false
                     }
@@ -85,13 +84,13 @@ impl KdTree {
                     return 1
                 }
             },                
-            // (Str(x), Str(y)) => {
-            //     match x.cmp(&y) {
-            //         Less => -1,
-            //         Equal => 0,
-            //         Greater => 1,
-            //     }
-            // }, 
+            (Str(x), Str(y)) => {
+                match x.cmp(&y) {
+                    Less => -1,
+                    Equal => 0,
+                    Greater => 1,
+                }
+            }, 
             (_, _) => {
                 return 0
             }
@@ -104,7 +103,7 @@ impl KdTree {
             match &val[i] {
                 Num(x) => {res.push(Num(*x));}
                 Float(x) => {res.push(Float(*x));}
-                // Str(x) => {res.push(Str(x.to_string()));}
+                Str(x) => {res.push(Str(x.to_string()));}
             }
         }
         return res;
@@ -119,7 +118,7 @@ impl KdTree {
             match element {
                 Num(x) => {println!("{},", x)},
                 Float(x) => {println!("{},", x)},
-                // Str(x) => {println!("{},", x)},                
+                Str(x) => {println!("{},", x)},                
             }
         }
         println!("]\n");
@@ -201,7 +200,7 @@ impl KdTree {
                 match single_val {
                     Num(x) => {println!("{},", x)},
                     Float(x) => {println!("{},", x)},
-                    // Str(x) => {println!("{},", x)},                
+                    Str(x) => {println!("{},", x)},                
                 }
             }
             println!("], ");
@@ -221,7 +220,7 @@ impl KdTree {
                 match single_val {
                     Num(x) => {println!("{},", x)},
                     Float(x) => {println!("{},", x)},
-                    // Str(x) => {println!("{},", x)},                
+                    Str(x) => {println!("{},", x)},                
                 }
             }
             println!("], ");
@@ -330,11 +329,19 @@ impl KdTree {
         self.find_min_helper(node_idx, curr_dim, depth)
     }
 
+    fn copy_single_val(&self, val: &Type) -> Type {
+        match val {
+            Num(x) => {Num(*x)},
+            Float(x) => {Float(*x)},
+            Str(x) => {Str(x.to_string())},
+        }        
+    }
+
     fn get_new_copy(&self, node_idx: usize) -> Vec<Type> {
         let mut new_copy = Vec::new();
         let copy_val = self.arr[node_idx].as_ref().unwrap();
         for i in 0..self.dim {
-            new_copy.push(copy_val[i]);
+            new_copy.push(self.copy_single_val(&copy_val[i]));
         }
         return new_copy
     }
@@ -445,7 +452,7 @@ impl KdTree {
             match element {
                 Num(x) => {println!("{},", x)},
                 Float(x) => {println!("{},", x)},
-                // Str(x) => {println!("{},", x)},                
+                Str(x) => {println!("{},", x)},                
             }
         }
         println!("]\n");
@@ -479,10 +486,19 @@ impl KdTree {
         }
         return res;
     }
+
     pub fn float_val_to_type(vec: &Vec<f64>) -> Vec<Type> {
         let mut res: Vec<Type> = Vec::new();
         for element in vec {
             res.push(Float(*element));
+        }
+        return res;
+    }
+
+    pub fn str_val_to_type(vec: &Vec<String>) -> Vec<Type> {
+        let mut res: Vec<Type> = Vec::new();
+        for element in vec {
+            res.push(Str(element.to_string()));
         }
         return res;
     }
@@ -501,12 +517,23 @@ impl KdTree {
         return &mut res[..];
     }
 
+    pub fn str_arr_to_type<'a>(vec: &'a Vec<Vec<String>>, res: &'a mut Vec<Vec<Type>>) -> &'a mut [Vec<Type>]  {
+        for element in vec {
+            res.push(KdTree::str_val_to_type(element));
+        }
+        return &mut res[..];
+    }
+
+}
+
+fn main() {
+    
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use common::testutil::*;
+    use crate::testutil::*;
 
     pub fn tree1() -> KdTree {
         let a: Vec<Type> = vec![Type::Num(4), Type::Num(7)];

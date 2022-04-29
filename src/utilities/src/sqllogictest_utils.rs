@@ -399,4 +399,26 @@ mod test {
         assert!(run_tests(vec![test4.clone()]).is_err());
     }
     */
+
+    #[test]
+    fn test_create_index_sqllogic() {
+        let test_str = "statement ok\nCREATE TABLE test (a int primary key, b int)\n\nstatement ok\n\\i csv/data.csv test\n\nstatement ok\n\\createIndex md_index test (a,b)\n\n";
+        let expected = vec![
+            SQLLogicTest {
+                expectation: SQLLogicTestResult::Ok,
+                command: Commands::ExecuteSQL(String::from(
+                    "CREATE TABLE test (a int primary key, b int)",
+                )),
+            },
+            SQLLogicTest {
+                expectation: SQLLogicTestResult::Ok,
+                command: Commands::Import(String::from("csv/data.csv test")),
+            },
+            SQLLogicTest {
+                expectation: SQLLogicTestResult::Ok,
+                command: Commands::CreateIndex(String::from(" md_index test (a,b)")),
+            },
+        ];
+        assert_eq!(parse_sqllogictests(test_str).unwrap(), expected)
+    }
 }

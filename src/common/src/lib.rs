@@ -27,6 +27,8 @@ pub mod physical_plan;
 pub mod storage_trait;
 pub mod table;
 pub mod testutil;
+pub mod md_index;
+pub use md_index::KdTree;
 
 /// How big each page is
 pub const PAGE_SIZE: usize = 4096;

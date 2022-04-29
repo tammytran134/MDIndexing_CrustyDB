@@ -129,6 +129,27 @@ impl Conductor {
 
                 Ok(format!("Finished running query \"{}\"", query_name))
             }
+            commands::Commands::CreateIndex(query) => {
+                info!("Processing COMMAND::CreateIndex {:?}", query);
+                let db_id_ref = server_state.active_connections.read().unwrap();
+                let db_state = match db_id_ref.get(&client_id) {
+                    Some(db_id) => {
+                        let db_ref = server_state.id_to_db.read().unwrap();
+                        *db_ref.get(db_id).unwrap()
+                    }
+                    None => {
+                        return Err(CrustyError::CrustyError(String::from(
+                            "No active DB or DB not found",
+                        )))
+                    }
+                };
+                self.process_create_index(query, db_state);
+                Ok(format!("Finished running CreateIndex query"))
+            }
+            commands::Commands::UseIndex(query) => {
+                // self.process_use_index(query, db_state);
+                Ok(format!("Finished running UseIndex query"))
+            }
             #[allow(unused_variables)]
             commands::Commands::RunQueryPartial(name_and_range) => todo!(),
             commands::Commands::ConvertQuery(args) => {
@@ -399,5 +420,34 @@ impl Conductor {
             Ok(qr) => Ok(qr),
             Err(e) => Err(e),
         }
+    }
+
+    fn process_create_index(&mut self, query: String, db_state: &'static DatabaseState) {
+        debug!("Comes to process_create_index in Conductor");
+        let mut tokens = query.split(" ");
+        tokens.next();
+        let _index_name = tokens.next();
+        let _container = tokens.next();
+        let _attributes = tokens.next();
+        if _index_name.is_none() || _container.is_none() || _attributes.is_none() {
+            //error
+        }
+        let index_name = _index_name.unwrap();
+        let container = _container.unwrap();
+        let mut attributes = _attributes.unwrap();
+        attributes = &attributes[1..attributes.len()-1];
+        let mut attribute_tokens = attributes.split(",");
+        let mut attribute_list = Vec::new();
+        while let Some(single_attribute) = attribute_tokens.next() {
+            attribute_list.push(single_attribute.trim().to_string());
+        }
+        if attribute_list.len() == 0 {
+            //error
+        }
+        db_state.create_index(index_name, container, attribute_list);
+    }
+
+    fn process_use_index(&mut self, query: String, server_state: &'static ServerState) {
+
     }
 }

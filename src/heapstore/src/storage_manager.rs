@@ -1,4 +1,4 @@
-use crate::heapfile::HeapFile;
+use crate::heapfile::{HeapFile, MdIndex};
 use crate::heapfileiter::HeapFileIterator;
 use crate::page::Page;
 use common::prelude::*;
@@ -12,6 +12,7 @@ use std::os::unix::prelude::FileExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, RwLock};
+use common::md_index::KdTree;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct SerializedHeapFile {
@@ -123,39 +124,33 @@ impl StorageManager {
         )?;
         Ok(())
     }
-
-    // pub(crate) fn write_data_to_file(&self, container_id: ContainerId, page: &Page, page_id: PageId, slot_id: SlotId, value: Vec<u8>) -> Result<(), CrustyError> {
-    // let hash_slot = &page.header.slot_arr.get(&slot_id).unwrap();
-    // let start = hash_slot.start;
-    // let end = hash_slot.end;
-    // let file_start_offset = page_id * u16::try_from(PAGE_SIZE).unwrap() + start;
-    // let hf_serialized_map = &self.hf_serialized_map.read().unwrap();
-    // let serialized_hf = hf_serialized_map.get(&container_id).unwrap();
-    // let underlying_file = match OpenOptions::new()
-    //     .read(true)
-    //     .write(true)
-    //     .open(serialized_hf.hf_path.write().unwrap().clone())
-    // {
-    //     Ok(f) => f,
-    //     Err(error) => {
-    //         return Err(CrustyError::CrustyError(format!(
-    //             "Cannot open heap file: {} {} {:?}",
-    //             serialized_hf.hf_path.read().unwrap().to_string_lossy(),
-    //             error.to_string(),
-    //             error
-    //         )))
-    //     }
-    // };
-    //     let hf_map = &self.hf_map.read().unwrap();
-    //     let hf = hf_map.get(&container_id).unwrap();
-    //     let underlying_file = hf.heap_file.write().unwrap();
-    //     underlying_file.write_at(&value, file_start_offset.try_into().unwrap())?;
-    //     let header_size = page.get_header_size();
-    //     underlying_file.write_at(&slot_id.to_be_bytes(), (header_size-6).try_into().unwrap())?;
-    //     underlying_file.write_at(&start.to_be_bytes(), (header_size-4).try_into().unwrap())?;
-    //     underlying_file.write_at(&end.to_be_bytes(), (header_size-2).try_into().unwrap())?;
-    //     Ok(())
-    // }
+    pub fn create_index_by_id(&self, index_name: &str, container_id: ContainerId, attribute_list: Vec<String>, table: &Table) {
+        debug!("Comes to create_index_by_id in Storage Manager");
+        let hf_map = &self.hf_map.read().unwrap();
+        let hf = hf_map.get(&container_id).unwrap();
+        let hf_iterator = self.get_iterator(container_id, TransactionId::new(), Permissions::ReadOnly);
+        let schema = &table.schema;
+        let mut field_vec = Vec::new();
+        for attribute_name in attribute_list {
+            let field_index = schema.get_field_index(&attribute_name);
+            if field_index.is_some() {
+                field_vec.push(*field_index.unwrap());
+            }
+            else {
+                error!("Field not found");
+            }
+        }
+        hf.index_map.write().unwrap().insert(index_name.to_string(), 
+        Arc::new(RwLock::new(MdIndex::new(field_vec.len(), index_name.to_string(), field_vec.clone()))));
+        let mut bulk_load_data = Vec::new();
+        for (i, val) in hf_iterator.enumerate() {
+            let tuple = Tuple::from_bytes(&val);
+            bulk_load_data.push(tuple.field_vals.clone());
+        }
+        debug!("Bulk load data array {:?}", &bulk_load_data);
+        hf.index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.data_into_tree(&mut bulk_load_data[..]);
+        hf.index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.print_tree();
+    }
 }
 
 /// Implementation of storage trait

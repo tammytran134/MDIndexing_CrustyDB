@@ -1,0 +1,11 @@
+statement ok
+create table test (a int primary key,b int)
+
+statement ok
+\i csv/data.csv test
+
+statement ok
+\createIndex md_index test (a,b)
+
+statement ok
+\reset

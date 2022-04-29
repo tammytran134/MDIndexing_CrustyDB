@@ -44,6 +44,15 @@ impl Database {
         let reader = File::open(&filename).expect("error opening file");
         serde_json::from_reader(reader).expect("error reading from json")
     }
+
+    pub fn get_table(&self, container_id: ContainerId) -> Option<Table> {
+        let tables = self.get_tables();
+        let tables_ref = tables.read().unwrap();
+        match tables_ref.get(&container_id) {
+            None => None,
+            Some(single_table) => Some(single_table.read().unwrap().clone()),
+        }
+    }
 }
 
 impl Catalog for Database {

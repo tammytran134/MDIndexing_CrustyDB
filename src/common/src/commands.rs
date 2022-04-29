@@ -35,6 +35,10 @@ pub enum Commands {
     Generate(String),
     /// Test
     Test,
+    /// Create MD Index
+    CreateIndex(String),
+    /// Use MD Index
+    UseIndex(String),
 }
 
 /// Types of acceptable commands.
@@ -69,7 +73,6 @@ pub fn parse_command(mut cmd: String) -> Option<Commands> {
     if !cmd.starts_with('\\') {
         return Some(Commands::ExecuteSQL(cmd));
     }
-
     if let Some(clean_cmd) = cmd.strip_prefix("\\r ") {
         // usage: \r <name>
         return Some(Commands::Create(clean_cmd.to_string()));
@@ -91,6 +94,12 @@ pub fn parse_command(mut cmd: String) -> Option<Commands> {
     } else if let Some(clean_cmd) = cmd.strip_prefix("\\convert") {
         // usage: \convert <query_json_path> | <sql>
         return Some(Commands::ConvertQuery(clean_cmd.to_string()));
+    } else if let Some(clean_cmd) = cmd.strip_prefix("\\createIndex") {
+        // usage: \createIndex <sql>
+        return Some(Commands::CreateIndex(clean_cmd.to_string()));
+    } else if let Some(clean_cmd) = cmd.strip_prefix("\\useIndex") {
+        // usage: \useIndex <sql>
+        return Some(Commands::UseIndex(clean_cmd.to_string()));
     } else if cmd == "\\dt" {
         // usage: \dt
         return Some(Commands::ShowTables);

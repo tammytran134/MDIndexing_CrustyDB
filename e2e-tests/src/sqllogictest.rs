@@ -22,26 +22,26 @@ mod test {
     }
 
 
-    #[test]
-    fn run_sql_join() {
-        //Sample test to run 1 evaluation plan
-        let path = if std::env::current_dir().unwrap().ends_with(E2E_DIR) {
-            Path::new("testdata").join("join1")
-        } else {
-            Path::new(E2E_DIR).join("testdata").join("join1")
-        };
-        assert!(path.exists());
-        println!("Path is {:?}", path);
-        let res = run_sqllogictests_in_file(&path);
-        let is_ok = res.is_ok();
-        match res {
-            Ok(()) => {
-                assert!(is_ok)
-            }
-            Err(e) => {
-                println!("Error: {:?}", e);
-                assert!(is_ok);
-            }
-        }
-    }
+//     #[test]
+//     fn run_sql_join() {
+//         //Sample test to run 1 evaluation plan
+//         let path = if std::env::current_dir().unwrap().ends_with(E2E_DIR) {
+//             Path::new("testdata").join("join1")
+//         } else {
+//             Path::new(E2E_DIR).join("testdata").join("join1")
+//         };
+//         assert!(path.exists());
+//         println!("Path is {:?}", path);
+//         let res = run_sqllogictests_in_file(&path);
+//         let is_ok = res.is_ok();
+//         match res {
+//             Ok(()) => {
+//                 assert!(is_ok)
+//             }
+//             Err(e) => {
+//                 println!("Error: {:?}", e);
+//                 assert!(is_ok);
+//             }
+//         }
+//     }
 }
