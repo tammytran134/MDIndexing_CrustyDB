@@ -280,14 +280,27 @@ impl DatabaseState {
         Ok(QueryResult::new(&format!("Table {} created", table_name)))
     }
 
-    pub fn create_index(&self, index_name: &str, container_name: &str, attribute_list: Vec<String>) {
-        debug!("Comes to process_create_index in Database State");
+    pub fn create_index(&self, index_name: &str, container_name: &str, attributes: &str) {
+        debug!("Comes to create_index in Database State");
         let container_id = self.database.get_table_id(container_name);
         if container_id.is_some() {
             let table = self.database.get_table(container_id.unwrap()).unwrap();
-            self.storage_manager.create_index_by_id(index_name, container_id.unwrap(), attribute_list, &table);
+            self.storage_manager.create_index_by_id(index_name, container_id.unwrap(), attributes, &table);
         } else {   
             error!("ERROR: Table not found");    
+            //error
+        } 
+    }
+
+    pub fn use_index(&self, query_type: &str, index_name: &str, container_name: &str, attributes: &str) -> Vec<Tuple> {
+        debug!("Comes to use_index in Database State");
+        let container_id = self.database.get_table_id(container_name);
+        if container_id.is_some() {
+            let table = self.database.get_table(container_id.unwrap()).unwrap();
+            self.storage_manager.use_index_by_id(query_type, index_name, container_id.unwrap(), attributes, &table)
+        } else {   
+            error!("ERROR: Table not found");    
+            Vec::new()
             //error
         } 
     }

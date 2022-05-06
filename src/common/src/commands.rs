@@ -41,6 +41,13 @@ pub enum Commands {
     UseIndex(String),
 }
 
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub enum UseIdxCommands {
+    EQ,
+    RANGE,
+}
+
+
 /// Types of acceptable commands.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum Response {

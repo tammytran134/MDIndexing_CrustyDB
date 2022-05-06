@@ -58,9 +58,8 @@ impl Executor {
     }
 
     /// Consumes the opiterator and stores the result in a QueryResult.
-    pub fn execute(&mut self) -> Result<QueryResult, CrustyError> {
-        let schema = self.plan.as_mut().unwrap().get_schema();
-
+    pub fn execute(&mut self, manual_res: Option<Vec<Tuple>>, manual_schema: &TableSchema) -> Result<QueryResult, CrustyError> {
+        let schema = if manual_res.is_some() {manual_schema} else {self.plan.as_mut().unwrap().get_schema()};
         match QUERY_RESULT_TYPE {
             QueryResultType::WIDTH(header, default_width) => {
                 let width = schema
@@ -77,17 +76,31 @@ impl Executor {
                     }
                     res.push('\n');
                 }
-
-                self.start()?;
-                while let Some(t) = &self.next()? {
-                    for f in t.field_vals() {
-                        let s = format!("{:width$}", f.to_string(), width = width);
-                        res.push_str(&s);
+                if manual_res.is_none() {
+                    self.start()?;
+                    while let Some(t) = &self.next()? {
+                        for f in t.field_vals() {
+                            let s = format!("{:width$}", f.to_string(), width = width);
+                            res.push_str(&s);
+                        }
+                        res.push('\n');
                     }
-                    res.push('\n');
+                    self.close()?;
+                    Ok(QueryResult::new(&res))
                 }
-                self.close()?;
-                Ok(QueryResult::new(&res))
+                else {
+                    for single_tuple in &manual_res.unwrap() {
+                        for f in single_tuple.field_vals() {
+                            let s = format!("{},", f.to_string());
+                            res.push_str(&s);                            
+                        }
+                        res.pop();
+                        res.push('\n');
+                    }
+                    res.pop();
+                    self.close()?;
+                    Ok(QueryResult::new(&res))
+                }
             }
             QueryResultType::CSV(header) => {
                 let mut res = String::new();
@@ -100,21 +113,34 @@ impl Executor {
                     res.pop();
                     res.push('\n');
                 }
-
-                self.start()?;
-                while let Some(t) = &self.next()? {
-                    for f in t.field_vals() {
-                        let s = format!("{},", f.to_string());
-                        res.push_str(&s);
+                if manual_res.is_none() {
+                    self.start()?;
+                    while let Some(t) = &self.next()? {
+                        for f in t.field_vals() {
+                            let s = format!("{},", f.to_string());
+                            res.push_str(&s);
+                        }
+                        //remove the last ,
+                        res.pop();
+                        res.push('\n');
                     }
-                    //remove the last ,
+                    //remove the last \n
                     res.pop();
-                    res.push('\n');
+                    self.close()?;
+                    Ok(QueryResult::new(&res))
                 }
-                //remove the last \n
-                res.pop();
-                self.close()?;
-                Ok(QueryResult::new(&res))
+                else {
+                    for single_tuple in &manual_res.unwrap() {
+                        for f in single_tuple.field_vals() {
+                            let s = format!("{},", f.to_string());
+                            res.push_str(&s);                            
+                        }
+                        res.pop();
+                        res.push('\n');
+                    }
+                    res.pop();
+                    Ok(QueryResult::new(&res))
+                }
             }
         }
     }

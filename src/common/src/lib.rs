@@ -29,6 +29,7 @@ pub mod table;
 pub mod testutil;
 pub mod md_index;
 pub use md_index::KdTree;
+pub use database::Database;
 
 /// How big each page is
 pub const PAGE_SIZE: usize = 4096;
@@ -122,7 +123,7 @@ impl QueryResult {
 #[derive(PartialEq, Clone, Debug)]
 pub struct TableSchema {
     /// Attributes of the schema.
-    attributes: Vec<Attribute>,
+    pub attributes: Vec<Attribute>,
     /// Mapping from attribute name to order in the schema.
     name_map: HashMap<String, usize>,
 }

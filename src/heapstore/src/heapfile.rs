@@ -38,9 +38,9 @@ pub(crate) struct HeapFile {
 }
 
 impl MdIndex {
-    pub fn new(tree_dim: usize, name: String, idx_fields: Vec<usize>) -> Self {
+    pub fn new(tree_dim: usize, name: String, idx_fields: Vec<usize>, total_dim: usize) -> Self {
         Self {
-            tree: KdTree::new(tree_dim, idx_fields.clone()),
+            tree: KdTree::new(tree_dim, idx_fields.clone(), total_dim),
             name,
         }
     }

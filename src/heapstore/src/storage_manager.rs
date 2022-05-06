@@ -3,6 +3,7 @@ use crate::heapfileiter::HeapFileIterator;
 use crate::page::Page;
 use common::prelude::*;
 use common::storage_trait::StorageTrait;
+use common::Field;
 use common::testutil::gen_random_dir;
 use common::PAGE_SIZE;
 use std::collections::HashMap;
@@ -124,13 +125,28 @@ impl StorageManager {
         )?;
         Ok(())
     }
-    pub fn create_index_by_id(&self, index_name: &str, container_id: ContainerId, attribute_list: Vec<String>, table: &Table) {
+
+    fn get_attribute_list(attributes: &str) -> Vec<String> {
+        let mut attributes_copy = &attributes.trim()[1..attributes.len()-1];
+        let mut attribute_tokens = attributes_copy.split(",");
+        let mut attribute_list = Vec::new();
+        while let Some(single_attribute) = attribute_tokens.next() {
+            attribute_list.push(single_attribute.trim().to_string());
+        }
+        if attribute_list.len() == 0 {
+            //error
+        }      
+        attribute_list.clone()  
+    }
+
+    pub fn create_index_by_id(&self, index_name: &str, container_id: ContainerId, attributes: &str, table: &Table) {
         debug!("Comes to create_index_by_id in Storage Manager");
         let hf_map = &self.hf_map.read().unwrap();
         let hf = hf_map.get(&container_id).unwrap();
         let hf_iterator = self.get_iterator(container_id, TransactionId::new(), Permissions::ReadOnly);
         let schema = &table.schema;
         let mut field_vec = Vec::new();
+        let attribute_list = StorageManager::get_attribute_list(attributes);
         for attribute_name in attribute_list {
             let field_index = schema.get_field_index(&attribute_name);
             if field_index.is_some() {
@@ -141,7 +157,7 @@ impl StorageManager {
             }
         }
         hf.index_map.write().unwrap().insert(index_name.to_string(), 
-        Arc::new(RwLock::new(MdIndex::new(field_vec.len(), index_name.to_string(), field_vec.clone()))));
+        Arc::new(RwLock::new(MdIndex::new(field_vec.len(), index_name.to_string(), field_vec.clone(), schema.attributes.len()))));
         let mut bulk_load_data = Vec::new();
         for (i, val) in hf_iterator.enumerate() {
             let tuple = Tuple::from_bytes(&val);
@@ -150,6 +166,60 @@ impl StorageManager {
         debug!("Bulk load data array {:?}", &bulk_load_data);
         hf.index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.data_into_tree(&mut bulk_load_data[..]);
         hf.index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.print_tree();
+    }
+
+    pub fn use_index_equal(&self, index_name: &str, container_id: ContainerId, attributes: &str, table: &Table) -> Vec<Tuple> {
+        debug!("Comes to use_index_equal in Storage Manager");
+        let hf_map = &self.hf_map.read().unwrap();
+        let hf = hf_map.get(&container_id).unwrap();
+        let schema = &table.schema;
+        let attribute_vals = StorageManager::get_attribute_list(attributes);
+        let mut field_vec = Vec::new(); //LOTS OF ERROR CHECKING
+        let mut i = 0;
+        let idx_fields = hf.index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.idx_fields.clone();
+        for attribute_val in attribute_vals {
+            match &schema.get_attribute(idx_fields[i]).unwrap().dtype {
+                Int => {field_vec.push(Field::IntField(attribute_val.parse::<i32>().unwrap()))},
+                String => {field_vec.push(Field::StringField(attribute_val))},
+            }
+            i += 1;
+        }
+        let res = hf.index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.get(&field_vec);
+        KdTree::print_vec(&res);
+        return KdTree::vec_field_to_tuple(&res);
+    }
+
+    pub fn use_index_range(&self, index_name: &str, container_id: ContainerId, attributes: &str, table: &Table) -> Vec<Tuple> {
+        let hf_map = &self.hf_map.read().unwrap();
+        let hf = hf_map.get(&container_id).unwrap();
+        let schema = &table.schema;
+        let mut tokens = attributes.split(";");
+        let mut i = 0;
+        let mut min = Vec::new();
+        let mut max = Vec::new();
+        let idx_fields = hf.index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.idx_fields.clone();
+        while let Some(attribute_min_max_val) = tokens.next() {
+            let min_max_val_list = StorageManager::get_attribute_list(attribute_min_max_val);
+            match &schema.get_attribute(idx_fields[i]).unwrap().dtype {
+                Int => {min.push(Field::IntField(min_max_val_list[0].parse::<i32>().unwrap()));
+                        max.push(Field::IntField(min_max_val_list[1].parse::<i32>().unwrap()))},
+                String => {min.push(Field::StringField(min_max_val_list[0].to_string()));
+                            max.push(Field::StringField(min_max_val_list[1].to_string()))},
+            }
+            i += 1;            
+        }
+        let res = hf.index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.range_query(&min, &max);
+        KdTree::print_vec(&res);
+        return KdTree::vec_field_to_tuple(&res);
+    }
+
+    pub fn use_index_by_id(&self, query_type: &str, index_name: &str, container_id: ContainerId, attributes: &str, table: &Table) -> Vec<Tuple> {
+        debug!("Comes to use_index_by_id in Storage Manager");
+        match query_type {
+            "RANGE" => {self.use_index_range(index_name, container_id, attributes, table)},
+            "EQ" => {self.use_index_equal(index_name, container_id, attributes, table)},
+            _ => {error!("UseIndex command not supported"); Vec::new()},
+        }
     }
 }
 

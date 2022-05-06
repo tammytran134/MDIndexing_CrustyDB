@@ -3,6 +3,10 @@ use std::sync::Arc;
 
 use crate::queryexe::query::TranslateAndValidate;
 use common::ids::LogicalTimeStamp;
+use common::Tuple;
+use common::TableSchema;
+use common::catalog::Catalog;
+use common::database::Database;
 use common::physical_plan::PhysicalPlan;
 use common::{get_name, testutil, CrustyError, QueryResult};
 use optimizer::optimizer::Optimizer;
@@ -147,8 +151,27 @@ impl Conductor {
                 Ok(format!("Finished running CreateIndex query"))
             }
             commands::Commands::UseIndex(query) => {
-                // self.process_use_index(query, db_state);
-                Ok(format!("Finished running UseIndex query"))
+                info!("Processing COMMAND::UseIndex {:?}", query);
+                let db_id_ref = server_state.active_connections.read().unwrap();
+                let db_state = match db_id_ref.get(&client_id) {
+                    Some(db_id) => {
+                        let db_ref = server_state.id_to_db.read().unwrap();
+                        *db_ref.get(db_id).unwrap()
+                    }
+                    None => {
+                        return Err(CrustyError::CrustyError(String::from(
+                            "No active DB or DB not found",
+                        )))
+                    }
+                };
+                let (tuple_res, container_name) = self.process_use_index(query, db_state);
+                let container_id = db_state.database.get_table_id(&container_name).unwrap();
+                let schema = &db_state.database.get_table(container_id).unwrap().schema;
+                let res = self.executor.execute(Some(tuple_res.clone()), schema);
+                match res {
+                    Ok(qr) => Ok(qr.result),
+                    Err(e) => Err(e),
+                }
             }
             #[allow(unused_variables)]
             commands::Commands::RunQueryPartial(name_and_range) => todo!(),
@@ -415,12 +438,13 @@ impl Conductor {
 
         // Finally, execute the query
         debug!("Executing query");
-        let res = self.executor.execute();
+        let res = self.executor.execute(None, &TableSchema::new(Vec::new()));
         match res {
             Ok(qr) => Ok(qr),
             Err(e) => Err(e),
         }
     }
+
 
     fn process_create_index(&mut self, query: String, db_state: &'static DatabaseState) {
         debug!("Comes to process_create_index in Conductor");
@@ -434,20 +458,25 @@ impl Conductor {
         }
         let index_name = _index_name.unwrap();
         let container = _container.unwrap();
-        let mut attributes = _attributes.unwrap();
-        attributes = &attributes[1..attributes.len()-1];
-        let mut attribute_tokens = attributes.split(",");
-        let mut attribute_list = Vec::new();
-        while let Some(single_attribute) = attribute_tokens.next() {
-            attribute_list.push(single_attribute.trim().to_string());
-        }
-        if attribute_list.len() == 0 {
-            //error
-        }
-        db_state.create_index(index_name, container, attribute_list);
+        let attributes = _attributes.unwrap();
+        db_state.create_index(index_name, container, attributes);
     }
 
-    fn process_use_index(&mut self, query: String, server_state: &'static ServerState) {
-
+    fn process_use_index(&mut self, query: String, db_state: &'static DatabaseState) -> (Vec<Tuple>, String) {
+        debug!("Comes to process_create_index in Conductor");
+        let mut tokens = query.split(" ");
+        tokens.next();
+        let _query_type = tokens.next();
+        let _index_name = tokens.next();
+        let _container = tokens.next();
+        let _attributes = tokens.next();
+        if _query_type.is_none() || _index_name.is_none() || _container.is_none() || _attributes.is_none() {
+            //error
+        }
+        let query_type = _query_type.unwrap();
+        let index_name = _index_name.unwrap();
+        let container = _container.unwrap();
+        let attributes = _attributes.unwrap();
+        (db_state.use_index(query_type, index_name, container, attributes), container.to_string().clone())
     }
 }
