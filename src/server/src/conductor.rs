@@ -450,33 +450,38 @@ impl Conductor {
         debug!("Comes to process_create_index in Conductor");
         let mut tokens = query.split(" ");
         tokens.next();
+        let _tree_type = tokens.next();
         let _index_name = tokens.next();
         let _container = tokens.next();
         let _attributes = tokens.next();
-        if _index_name.is_none() || _container.is_none() || _attributes.is_none() {
+        if  _tree_type.is_none() || _index_name.is_none() || _container.is_none() || _attributes.is_none() {
             //error
         }
+        let tree_type = _tree_type.unwrap();
         let index_name = _index_name.unwrap();
         let container = _container.unwrap();
         let attributes = _attributes.unwrap();
-        db_state.create_index(index_name, container, attributes);
+        db_state.create_index(tree_type, index_name, container, attributes);
     }
 
     fn process_use_index(&mut self, query: String, db_state: &'static DatabaseState) -> (Vec<Tuple>, String) {
         debug!("Comes to process_create_index in Conductor");
         let mut tokens = query.split(" ");
         tokens.next();
+        let _tree_type = tokens.next();
         let _query_type = tokens.next();
         let _index_name = tokens.next();
         let _container = tokens.next();
         let _attributes = tokens.next();
-        if _query_type.is_none() || _index_name.is_none() || _container.is_none() || _attributes.is_none() {
+        let _k = tokens.next();
+        if _tree_type.is_none() || _query_type.is_none() || _index_name.is_none() || _container.is_none() || _attributes.is_none() {
             //error
         }
+        let tree_type = _tree_type.unwrap();
         let query_type = _query_type.unwrap();
         let index_name = _index_name.unwrap();
         let container = _container.unwrap();
         let attributes = _attributes.unwrap();
-        (db_state.use_index(query_type, index_name, container, attributes), container.to_string().clone())
+        (db_state.use_index(tree_type, query_type, index_name, container, attributes, _k), container.to_string().clone())
     }
 }

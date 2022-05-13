@@ -1,0 +1,24 @@
+statement ok
+create table test (a int primary key,b int, c int)
+
+statement ok
+\i e2e-tests/csv/index2.csv test
+
+statement ok
+\createIndex KD md_index test (b,c)
+
+statement ok
+\useIndex KD EQ md_index test (7,15)
+
+statement ok
+\useIndex KD RANGE md_index test (7,16);(3,15)
+
+statement ok
+\useIndex KD KNN md_index test (7,16) 1
+
+statement ok
+\reset
+
+\createIndex R md_index test (b,c)
+\useIndex R EQ md_index test (7,15)
+\useIndex R KNN md_index test (7,16) 1

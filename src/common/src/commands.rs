@@ -106,6 +106,7 @@ pub fn parse_command(mut cmd: String) -> Option<Commands> {
         return Some(Commands::CreateIndex(clean_cmd.to_string()));
     } else if let Some(clean_cmd) = cmd.strip_prefix("\\useIndex") {
         // usage: \useIndex <sql>
+        debug!("YOO");
         return Some(Commands::UseIndex(clean_cmd.to_string()));
     } else if cmd == "\\dt" {
         // usage: \dt

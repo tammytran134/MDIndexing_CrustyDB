@@ -8,6 +8,7 @@ use std::sync::atomic::{AtomicU16, Ordering};
 use std::sync::{Arc, RwLock};
 use std::collections::HashMap;
 use common::md_index::KdTree;
+use common::md_index::R_Tree;
 //use std::io::prelude::*;
 //use std::io::BufWriter;
 //use std::io::{Seek, SeekFrom};
@@ -24,23 +25,38 @@ use common::md_index::KdTree;
 ///
 /// Your code should persist what information is needed to recreate the heapfile.
 
-pub struct MdIndex {
+pub struct KdIndex {
     pub tree: KdTree,
+    pub name: String,
+}
+
+pub struct RIndex {
+    pub tree: R_Tree,
     pub name: String,
 }
 pub(crate) struct HeapFile {
     pub num_page: Arc<RwLock<PageId>>,
     pub heap_file: Arc<RwLock<File>>,
-    pub index_map: Arc<RwLock<HashMap<String, Arc<RwLock<MdIndex>>>>>,
+    pub kd_index_map: Arc<RwLock<HashMap<String, Arc<RwLock<KdIndex>>>>>,
+    pub r_index_map: Arc<RwLock<HashMap<String, Arc<RwLock<RIndex>>>>>,
     // The following are for profiling/ correctness checks
     pub read_count: AtomicU16,
     pub write_count: AtomicU16,
 }
 
-impl MdIndex {
+impl KdIndex {
     pub fn new(tree_dim: usize, name: String, idx_fields: Vec<usize>, total_dim: usize) -> Self {
         Self {
             tree: KdTree::new(tree_dim, idx_fields.clone(), total_dim),
+            name,
+        }
+    }
+}
+
+impl RIndex {
+    pub fn new(tree_dim: usize, name: String, idx_fields: Vec<usize>, total_dim: usize) -> Self {
+        Self {
+            tree: R_Tree::new(tree_dim, idx_fields.clone(), total_dim),
             name,
         }
     }
@@ -76,7 +92,8 @@ impl HeapFile {
         Ok(HeapFile {
             num_page: Arc::new(RwLock::new(num_page)),
             heap_file: Arc::new(RwLock::new(file)),
-            index_map: Arc::new(RwLock::new(HashMap::new())),
+            kd_index_map: Arc::new(RwLock::new(HashMap::new())),
+            r_index_map: Arc::new(RwLock::new(HashMap::new())),
             read_count: AtomicU16::new(0),
             write_count: AtomicU16::new(0),
         })

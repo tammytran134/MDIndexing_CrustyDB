@@ -3,5 +3,6 @@ use criterion::criterion_main;
 pub mod benchmarks;
 
 criterion_main! {
-    benchmarks::joinbench::joinbench,
+    //benchmarks::joinbench::joinbench,
+    benchmarks::indexbench::indexbench,
 }

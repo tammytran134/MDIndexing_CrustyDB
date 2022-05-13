@@ -2,6 +2,8 @@ use std::cmp::Ordering::{Less, Greater, Equal};
 use std::any::type_name;
 use crate::Tuple;
 use crate::Field;
+use std::collections::BinaryHeap;
+use std::cmp::Ordering;
 use crate::Field::{IntField, StringField};
 
 #[derive(Clone, PartialEq, PartialOrd)]
@@ -11,6 +13,29 @@ pub struct KdTree {
     pub idx_fields: Vec<usize>,
     pub total_dim: usize,
 }
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+struct KNN {
+    dist: i32,
+    node_idx: usize,
+}
+
+impl Ord for KNN {
+    fn cmp(&self, other: &KNN) -> Ordering {
+        // Notice that the we flip the ordering on costs.
+        // In case of a tie we compare positions - this step is necessary
+        // to make implementations of `PartialEq` and `Ord` consistent.
+        self.dist.cmp(&other.dist)
+    }
+}
+
+// `PartialOrd` needs to be implemented as well.
+impl PartialOrd for KNN {
+    fn partial_cmp(&self, other: &KNN) -> Option<Ordering> {
+        Some(self.dist.cmp(&other.dist))
+    }
+}
+
 
 
 impl KdTree {
@@ -289,10 +314,73 @@ impl KdTree {
         }        
     }
 
-    pub fn range_query(&mut self, min:&Vec<Field>, max: &Vec<Field>) -> Vec<Vec<Field>> {
+    pub fn range_query(&mut self, min: &Vec<Field>, max: &Vec<Field>) -> Vec<Vec<Field>> {
         let mut res = Vec::new();
         self.range_query_helper(&self.padding(min), &self.padding(max), 0, 0, &mut res);
         res
+    }
+
+    fn calculate_dist(&self, val1: &Vec<Field>, val2: &Vec<Field>) -> i32 {
+        let mut res = 0;
+        for i in 0..self.idx_fields.len() {
+            match (&val1[self.idx_fields[i]], &val2[self.idx_fields[i]]) {    
+                (IntField(x), IntField(y)) => {let temp = x-y; res += temp.pow(2);},                        
+                (_, _) => {res = i32::MAX},
+            }  
+        }
+        return res   
+    }
+
+    fn calculate_direct_split(&self, val1: &Vec<Field>, val2: &Vec<Field>, curr_dim: usize) -> i32 {
+        match (&val1[self.idx_fields[curr_dim]], &val2[self.idx_fields[curr_dim]]) {  
+            (IntField(x), IntField(y)) => {x-y},                        
+            (_, _) => {i32::MAX},
+        }          
+    }
+
+    fn knn_helper(&mut self, val: &Vec<Field>, node_idx: usize, depth: usize, k: usize, heap: &mut BinaryHeap<KNN>) {
+        let arr_len = self.arr.len();
+        if arr_len == 0 || arr_len <= node_idx {
+            return
+        }
+        if self.arr[node_idx].is_none() {
+            return
+        }
+        let curr_dim = depth % self.dim;
+        let curr_dist = self.calculate_dist(val, &self.arr[node_idx].as_ref().unwrap());
+        if heap.len() < k {
+            heap.push(KNN {dist: curr_dist, node_idx});
+        }
+        else {
+            let curr_max = heap.peek().unwrap();
+            if curr_dist < curr_max.dist {
+                heap.pop();
+                heap.push(KNN {dist: curr_dist, node_idx});
+            }
+        }
+        println!("{:?}", heap);
+        let mut next = node_idx*2 + 2;
+        let mut other = node_idx*2 + 1;
+        if self.compare_val_at_dim(val, &self.arr[node_idx].as_ref().unwrap(), curr_dim) < 0 {
+            next = node_idx*2 + 1;
+            other = node_idx*2 + 2;
+        }
+        self.knn_helper(val, next, depth + 1, k, heap);
+        let direct_split = self.calculate_direct_split(val, &self.arr[node_idx].as_ref().unwrap(), curr_dim);
+        //println!("direct split is {}", direct_split);
+        if self.calculate_dist(val, &self.arr[heap.peek().unwrap().node_idx].as_ref().unwrap()) >= direct_split * direct_split {
+            self.knn_helper(val, other, depth + 1, k, heap);
+        }
+    }
+
+    pub fn knn(&mut self, val:&Vec<Field>, k: usize) -> Vec<Vec<Field>> {
+        let mut heap = BinaryHeap::new();
+        self.knn_helper(&self.padding(val), 0, 0, k, &mut heap);
+        let mut res = Vec::new();
+        for element in &heap {
+            res.push(self.arr[element.node_idx].as_ref().unwrap().clone());
+        }
+        res       
     }
 
     fn copy_from_vec(&self, array: &mut [Vec<Field>], vec: &Vec<Vec<Field>>) {
@@ -331,20 +419,20 @@ impl KdTree {
     pub fn print_vec(vec: &Vec<Vec<Field>>) {
         let vec_len = vec.len();
         if vec_len == 0 {
-            debug!("Empty vec\n");
+            println!("Empty vec\n");
         }  
-        debug!("[");
+        println!("[");
         for element in vec {
-            debug!("[");
+            println!("[");
             for single_val in element {
                 match single_val {
-                    IntField(x) => {debug!("{},", x)},
-                    StringField(x) => {debug!("{},", x)},            
+                    IntField(x) => {println!("{},", x)},
+                    StringField(x) => {println!("{},", x)},            
                 }
             }
-            debug!("], ");
+            println!("], ");
         }  
-        debug!("]\n");
+        println!("]\n");
     }
     
     fn sort(&self, array: &mut [Vec<Field>], curr_dim: usize) {
@@ -419,15 +507,12 @@ impl KdTree {
         self.compare_val_at_dim(&self.arr[val3.unwrap()].as_ref().unwrap(), &self.arr[val1].as_ref().unwrap(), curr_dim) < 0 {
             res = val3.unwrap();
         }
-        //println!("res is {}", res);
         return Some(res);
     }
 
     fn find_min_helper(&self, node_idx: usize, curr_dim: usize, depth: usize) -> Option<usize> {
         let arr_len = self.arr.len();
-        //println!("node idx to find min is {}", node_idx);
         if arr_len == 0 || arr_len <= node_idx || self.arr[node_idx].is_none() {
-            //println!("errorrrrr {}", node_idx);
             return None
         }
         let curr_dim2 = depth % self.dim;
@@ -484,7 +569,6 @@ impl KdTree {
     fn convert_left_to_right_tree(&mut self, node_idx: usize) {
         let arr_len = self.arr.len();
         if arr_len == 0 || arr_len <= node_idx || self.arr[node_idx].is_none() {
-            //println!("nothing to convert");
             return
         }
         let direction = if node_idx % 2 == 0 {2} else {1};
@@ -503,41 +587,32 @@ impl KdTree {
     }
 
     fn delete_helper(&mut self, val: &Vec<Field>, node_idx: usize, depth: usize) {
-        //println!("node idx is {}", node_idx);
         let arr_len = self.arr.len();
         if arr_len == 0 || arr_len <= node_idx || self.arr[node_idx].is_none() {
             return
         }
         let curr_dim = depth % self.dim;
         if self.compare_val(&self.arr[node_idx].as_ref().unwrap(), val) {
-            //println!("found");
             if arr_len > (node_idx * 2 + 2) && self.arr[node_idx*2 + 2].is_some() {
-                //println!("turn right");
                 let min_node_idx = self.find_min(node_idx * 2 + 2, curr_dim, depth + 1);
                 if min_node_idx.is_none() {
-                    //println!("comes here right");
                     return
                 }
-                //println!("min node index right is {}", min_node_idx.unwrap());
                 self.arr[node_idx] = Some(self.get_new_copy(min_node_idx.unwrap()));
                 let new_val = self.get_new_copy(min_node_idx.unwrap());
                 self.delete_helper(&new_val, node_idx*2 + 2, depth + 1);        
             }
             else if arr_len > (node_idx * 2 + 1) && self.arr[node_idx*2 + 1].is_some() {
-                //println!("turn left");
                 let mut min_node_idx = self.find_min(node_idx * 2 + 1, curr_dim, depth + 1);
                 if min_node_idx.is_none() {
-                    //println!("comes here left");
                     return
                 }
-                //println!("min node index left is {}", min_node_idx.unwrap());
                 self.arr[node_idx] = Some(self.get_new_copy(min_node_idx.unwrap()));
                 let new_val = self.get_new_copy(min_node_idx.unwrap());
                 self.delete_helper(&new_val, node_idx*2 + 1, depth + 1);
                 self.convert_left_to_right_tree(node_idx*2 + 1);                      
             }
             else {
-                //println!("reach end of tree");
                 self.arr[node_idx] = None;
                 return
             }
@@ -545,11 +620,9 @@ impl KdTree {
         }
         else {
             if self.compare_val_at_dim(val, &self.arr[node_idx].as_ref().unwrap(), curr_dim) < 0 {
-                //println!("turn left");
                 self.delete_helper(val, node_idx * 2 + 1, depth + 1)
             }
             else {
-                //println!("turn right");
                 self.delete_helper(val, node_idx * 2 + 2, depth + 1)
             }
         }
@@ -651,6 +724,7 @@ impl KdTree {
 mod test {
     use super::*;
     use crate::testutil::*;
+    use std::{println as debug};
 
     pub fn tree1() -> KdTree {
         let a: Vec<Field> = vec![IntField(4), IntField(7)];
@@ -744,6 +818,58 @@ mod test {
         tree5.data_into_tree(&mut tree_arr_5);
         tree5
     }
+
+    pub fn tree6() -> KdTree {
+        let a: Vec<Field> = vec![IntField(5), IntField(4)];
+        let b: Vec<Field> = vec![IntField(2), IntField(6)];
+        let c: Vec<Field> = vec![IntField(13), IntField(3)];
+        let d: Vec<Field> = vec![IntField(3), IntField(1)];
+        let e: Vec<Field> = vec![IntField(10), IntField(2)];
+        let f: Vec<Field> = vec![IntField(8), IntField(7)];
+        let mut tree6 = KdTree::new(2, vec![0, 1], 2);
+        tree6.insert(&a);
+        tree6.insert(&b);
+        tree6.insert(&c);
+        tree6.insert(&d);
+        tree6.insert(&e);
+        tree6.insert(&f);
+        tree6
+    }
+
+    pub fn tree7() -> KdTree {
+        let a: Vec<Field> = vec![IntField(5), IntField(23)];
+        let b: Vec<Field> = vec![IntField(6), IntField(28)];
+        let c: Vec<Field> = vec![IntField(8), IntField(24)];
+        let d: Vec<Field> = vec![IntField(10), IntField(28)];
+        let e: Vec<Field> = vec![IntField(9), IntField(26)];
+        let f: Vec<Field> = vec![IntField(10), IntField(30)];
+        let g: Vec<Field> = vec![IntField(7), IntField(22)];
+        let h: Vec<Field> = vec![IntField(9), IntField(18)];
+        let i: Vec<Field> = vec![IntField(6), IntField(24)];
+        let j: Vec<Field> = vec![IntField(8), IntField(32)];  
+        let k: Vec<Field> = vec![IntField(9), IntField(20)];
+        let l: Vec<Field> =  vec![IntField(7), IntField(32)];
+        let m: Vec<Field> =  vec![IntField(7), IntField(27)];
+        let n: Vec<Field> =  vec![IntField(18), IntField(30)];
+        let o: Vec<Field> =  vec![IntField(11), IntField(22)];
+        let p: Vec<Field> =  vec![IntField(17), IntField(31)];
+        let q: Vec<Field> =  vec![IntField(13), IntField(28)];
+        let r: Vec<Field> =  vec![IntField(16), IntField(24)];
+        let s: Vec<Field> =  vec![IntField(19), IntField(26)];
+        let t: Vec<Field> =  vec![IntField(10), IntField(28)];
+        let u: Vec<Field> =  vec![IntField(14), IntField(27)];
+        let v: Vec<Field> =  vec![IntField(18), IntField(23)];
+        let w: Vec<Field> =  vec![IntField(17), IntField(22)];
+        let x: Vec<Field> =  vec![IntField(18), IntField(24)];
+        let mut tree7 = KdTree::new(2, vec![0, 1], 2);
+        let mut tree_arr_7: [Vec<Field>; 24] = [a.clone(), b.clone(), c.clone(), d.clone(), e.clone(), 
+        f.clone(), g.clone(), h.clone(), i.clone(), j.clone(), k.clone(), l.clone(), m.clone(), n.clone(),
+        o.clone(), p.clone(), q.clone(), r.clone(), s.clone(), t.clone(), u.clone(), v.clone(), w.clone(),
+        x.clone()];
+        tree7.data_into_tree(&mut tree_arr_7);
+        tree7
+    }
+
 
     #[test]
     pub fn test_int_arr_to_field() {
@@ -1189,7 +1315,6 @@ mod test {
         let mut get_result = tree_5.get(&vec![IntField(4), IntField(11)]);
         get_result.sort_by(|a, b| a[0].cmp(&b[0]));
         assert!(get_result == vec![a.clone()]);      
-        println!("correct here");    
         get_result = tree_5.get(&vec![IntField(7), IntField(15)]);
         get_result.sort_by(|a, b| a[0].cmp(&b[0]));
         assert!(get_result == vec![e.clone(), f.clone()]);      
@@ -1205,5 +1330,98 @@ mod test {
         let mut range_query_result = tree_5.range_query(&vec![IntField(7), IntField(3)], &vec![IntField(16), IntField(15)]);
         range_query_result.sort_by(|a, b| a[0].cmp(&b[0]));
         assert!(range_query_result == vec![c.clone(), e.clone(), g.clone(), f.clone()]);        
+    }
+
+    #[test]
+    pub fn test_knn_tree5 () {
+        let mut tree_5 = tree5();    
+        let e: Vec<Field> = vec![IntField(8), IntField(7), IntField(15)];
+        let f: Vec<Field> = vec![IntField(18), IntField(7), IntField(15)];
+        let mut knn_result = tree_5.knn(&vec![IntField(7), IntField(15)], 2);
+        knn_result.sort_by(|a, b| a[0].cmp(&b[0]));
+        assert!(knn_result == vec![e.clone(), f.clone()]);    
+    }
+
+    #[test]
+    pub fn test_knn_tree6 () {
+        let a: Vec<Field> = vec![IntField(5), IntField(4)];
+        let b: Vec<Field> = vec![IntField(2), IntField(6)];
+        let c: Vec<Field> = vec![IntField(13), IntField(3)];
+        let d: Vec<Field> = vec![IntField(3), IntField(1)];
+        let e: Vec<Field> = vec![IntField(10), IntField(2)];
+        let f: Vec<Field> = vec![IntField(8), IntField(7)];
+        let mut tree_6 = tree6();    
+        let mut knn_result = tree_6.knn(&vec![IntField(9), IntField(4)], 1);
+        knn_result.sort_by(|a, b| a[0].cmp(&b[0]));
+        assert!(knn_result == vec![e.clone()]); 
+        knn_result = tree_6.knn(&vec![IntField(9), IntField(4)], 2);
+        knn_result.sort_by(|a, b| a[0].cmp(&b[0]));
+        assert!(knn_result == vec![f.clone(), e.clone()]); 
+        knn_result = tree_6.knn(&vec![IntField(9), IntField(4)], 3);
+        knn_result.sort_by(|a, b| a[0].cmp(&b[0]));
+        assert!(knn_result == vec![a.clone(), f.clone(), e.clone()]); 
+        knn_result = tree_6.knn(&vec![IntField(9), IntField(4)], 4);
+        knn_result.sort_by(|a, b| a[0].cmp(&b[0]));
+        assert!(knn_result == vec![a.clone(), f.clone(), e.clone(), c.clone()]);     
+        knn_result = tree_6.knn(&vec![IntField(9), IntField(4)], 5);
+        knn_result.sort_by(|a, b| a[0].cmp(&b[0]));
+        assert!(knn_result == vec![d.clone(), a.clone(), f.clone(), e.clone(), c.clone()]); 
+        knn_result = tree_6.knn(&vec![IntField(5), IntField(6)], 1);
+        knn_result.sort_by(|a, b| a[0].cmp(&b[0]));
+        assert!(knn_result == vec![a.clone()]);    
+        knn_result = tree_6.knn(&vec![IntField(5), IntField(6)], 2);
+        knn_result.sort_by(|a, b| a[0].cmp(&b[0]));
+        // println!("Result is");
+        // KdTree::print_vec(&knn_result);
+        assert!(knn_result == vec![b.clone(), a.clone()]);  
+        knn_result = tree_6.knn(&vec![IntField(5), IntField(6)], 3);
+        knn_result.sort_by(|a, b| a[0].cmp(&b[0]));
+        assert!(knn_result == vec![b.clone(), a.clone(), f.clone()]);                 
+    }
+
+    #[test]
+    pub fn test_knn_tree7 () {
+        let a: Vec<Field> = vec![IntField(5), IntField(23)];
+        let b: Vec<Field> = vec![IntField(6), IntField(28)];
+        let c: Vec<Field> = vec![IntField(8), IntField(24)];
+        let d: Vec<Field> = vec![IntField(10), IntField(28)];
+        let e: Vec<Field> = vec![IntField(9), IntField(26)];
+        let f: Vec<Field> = vec![IntField(10), IntField(30)];
+        let g: Vec<Field> = vec![IntField(7), IntField(22)];
+        let h: Vec<Field> = vec![IntField(9), IntField(18)];
+        let i: Vec<Field> = vec![IntField(6), IntField(24)];
+        let j: Vec<Field> = vec![IntField(8), IntField(32)];  
+        let k: Vec<Field> = vec![IntField(9), IntField(20)];
+        let l: Vec<Field> =  vec![IntField(7), IntField(32)];
+        let m: Vec<Field> =  vec![IntField(7), IntField(27)];
+        let n: Vec<Field> =  vec![IntField(18), IntField(30)];
+        let o: Vec<Field> =  vec![IntField(11), IntField(22)];
+        let p: Vec<Field> =  vec![IntField(17), IntField(31)];
+        let q: Vec<Field> =  vec![IntField(13), IntField(28)];
+        let r: Vec<Field> =  vec![IntField(16), IntField(24)];
+        let s: Vec<Field> =  vec![IntField(19), IntField(26)];
+        let t: Vec<Field> =  vec![IntField(10), IntField(28)];
+        let u: Vec<Field> =  vec![IntField(14), IntField(27)];
+        let v: Vec<Field> =  vec![IntField(18), IntField(23)];
+        let w: Vec<Field> =  vec![IntField(17), IntField(22)];
+        let x: Vec<Field> =  vec![IntField(18), IntField(24)];    
+        let mut tree_7 = tree7();    
+        let mut knn_result = tree_7.knn(&vec![IntField(10), IntField(28)], 3);
+        knn_result.sort_by(|a, b| a[0].cmp(&b[0]));
+        assert!(knn_result == vec![f.clone(), d.clone(), t.clone()]);     
+        knn_result = tree_7.knn(&vec![IntField(7), IntField(18)], 3);
+        knn_result.sort_by(|a, b| a[0].cmp(&b[0]));
+        assert!(knn_result == vec![g.clone(), k.clone(), h.clone()]);      
+        knn_result = tree_7.knn(&vec![IntField(3), IntField(25)], 3);
+        knn_result.sort_by(|a, b| a[0].cmp(&b[0]));
+        assert!(knn_result == vec![a.clone(), b.clone(), i.clone()]);      
+        knn_result = tree_7.knn(&vec![IntField(15), IntField(29)], 2);
+        knn_result.sort_by(|a, b| a[0].cmp(&b[0]));
+        assert!(knn_result == vec![q.clone(), u.clone()]);    
+        knn_result = tree_7.knn(&vec![IntField(1), IntField(2)], 2);
+        knn_result.sort_by(|a, b| a[0].cmp(&b[0]));
+        // println!("Result is");
+        // KdTree::print_vec(&knn_result);
+        assert!(knn_result == vec![k.clone(), h.clone()]);               
     }
 }

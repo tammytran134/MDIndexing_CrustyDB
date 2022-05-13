@@ -3,6 +3,8 @@ extern crate csv;
 extern crate serde;
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate rstar;
 
 // use itertools::Itertools;
 use delta_storage_trait::ValueDiff;
@@ -29,6 +31,7 @@ pub mod table;
 pub mod testutil;
 pub mod md_index;
 pub use md_index::KdTree;
+pub use md_index::R_Tree;
 pub use database::Database;
 
 /// How big each page is

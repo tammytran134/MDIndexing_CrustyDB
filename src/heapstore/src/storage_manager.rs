@@ -1,4 +1,4 @@
-use crate::heapfile::{HeapFile, MdIndex};
+use crate::heapfile::{HeapFile, KdIndex, RIndex};
 use crate::heapfileiter::HeapFileIterator;
 use crate::page::Page;
 use common::prelude::*;
@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, RwLock};
 use common::md_index::KdTree;
+use common::md_index::R_Tree;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct SerializedHeapFile {
@@ -139,7 +140,7 @@ impl StorageManager {
         attribute_list.clone()  
     }
 
-    pub fn create_index_by_id(&self, index_name: &str, container_id: ContainerId, attributes: &str, table: &Table) {
+    pub fn create_index_by_id(&self, tree_type: &str, index_name: &str, container_id: ContainerId, attributes: &str, table: &Table) {
         debug!("Comes to create_index_by_id in Storage Manager");
         let hf_map = &self.hf_map.read().unwrap();
         let hf = hf_map.get(&container_id).unwrap();
@@ -156,19 +157,28 @@ impl StorageManager {
                 error!("Field not found");
             }
         }
-        hf.index_map.write().unwrap().insert(index_name.to_string(), 
-        Arc::new(RwLock::new(MdIndex::new(field_vec.len(), index_name.to_string(), field_vec.clone(), schema.attributes.len()))));
         let mut bulk_load_data = Vec::new();
         for (i, val) in hf_iterator.enumerate() {
             let tuple = Tuple::from_bytes(&val);
             bulk_load_data.push(tuple.field_vals.clone());
         }
         debug!("Bulk load data array {:?}", &bulk_load_data);
-        hf.index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.data_into_tree(&mut bulk_load_data[..]);
-        hf.index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.print_tree();
+        match tree_type {
+            "KD" => { hf.kd_index_map.write().unwrap().insert(index_name.to_string(), 
+                Arc::new(RwLock::new(KdIndex::new(field_vec.len(), index_name.to_string(), field_vec.clone(), schema.attributes.len()))));
+                hf.kd_index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.data_into_tree(&mut bulk_load_data[..]);
+                //hf.kd_index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.print_tree();
+            },
+            "R" => {        hf.r_index_map.write().unwrap().insert(index_name.to_string(), 
+                Arc::new(RwLock::new(RIndex::new(field_vec.len(), index_name.to_string(), field_vec.clone(), schema.attributes.len()))));
+                hf.r_index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.data_into_tree(&mut bulk_load_data[..]);
+                //hf.r_index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.print_tree();
+            },
+            _ => {error!("CreateIndex Tree Type Command not supported");},
+        }
     }
 
-    pub fn use_index_equal(&self, index_name: &str, container_id: ContainerId, attributes: &str, table: &Table) -> Vec<Tuple> {
+    fn use_index_equal (&self, tree_type: &str, index_name: &str, container_id: ContainerId, attributes: &str, table: &Table) -> Vec<Tuple> {
         debug!("Comes to use_index_equal in Storage Manager");
         let hf_map = &self.hf_map.read().unwrap();
         let hf = hf_map.get(&container_id).unwrap();
@@ -176,7 +186,12 @@ impl StorageManager {
         let attribute_vals = StorageManager::get_attribute_list(attributes);
         let mut field_vec = Vec::new(); //LOTS OF ERROR CHECKING
         let mut i = 0;
-        let idx_fields = hf.index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.idx_fields.clone();
+        let mut idx_fields = Vec::new();
+        match tree_type {
+            "KD" => { idx_fields = hf.kd_index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.idx_fields.clone();},
+            "R" => {idx_fields = hf.r_index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.get_idx_fields().clone();},
+            _ => {error!("UseIndex Tree Type Command not supported");},
+        }
         for attribute_val in attribute_vals {
             match &schema.get_attribute(idx_fields[i]).unwrap().dtype {
                 Int => {field_vec.push(Field::IntField(attribute_val.parse::<i32>().unwrap()))},
@@ -184,12 +199,18 @@ impl StorageManager {
             }
             i += 1;
         }
-        let res = hf.index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.get(&field_vec);
+        let mut res = Vec::new();
+        match tree_type {
+            "KD" => {res = hf.kd_index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.get(&field_vec);},
+            "R" => {res = hf.r_index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.get(&field_vec);},
+            _ => {error!("UseIndex Tree Type Command not supported");},
+        }        
         KdTree::print_vec(&res);
         return KdTree::vec_field_to_tuple(&res);
     }
 
-    pub fn use_index_range(&self, index_name: &str, container_id: ContainerId, attributes: &str, table: &Table) -> Vec<Tuple> {
+    fn use_index_range(&self, tree_type: &str, index_name: &str, container_id: ContainerId, attributes: &str, table: &Table) -> Vec<Tuple> {
+        debug!("Comes to use_index_range in Storage Manager");
         let hf_map = &self.hf_map.read().unwrap();
         let hf = hf_map.get(&container_id).unwrap();
         let schema = &table.schema;
@@ -197,7 +218,12 @@ impl StorageManager {
         let mut i = 0;
         let mut min = Vec::new();
         let mut max = Vec::new();
-        let idx_fields = hf.index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.idx_fields.clone();
+        let mut idx_fields = Vec::new();
+        match tree_type {
+            "KD" => { idx_fields = hf.kd_index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.idx_fields.clone();},
+            "R" => {idx_fields = hf.r_index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.get_idx_fields().clone();},
+            _ => {error!("UseIndex Tree Type Command not supported");},
+        }
         while let Some(attribute_min_max_val) = tokens.next() {
             let min_max_val_list = StorageManager::get_attribute_list(attribute_min_max_val);
             match &schema.get_attribute(idx_fields[i]).unwrap().dtype {
@@ -208,16 +234,57 @@ impl StorageManager {
             }
             i += 1;            
         }
-        let res = hf.index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.range_query(&min, &max);
+        let mut res = Vec::new();
+        match tree_type {
+            "KD" => {res = hf.kd_index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.range_query(&min, &max);},
+            "R" => {error!("UseIndex Range Query Command not supported for R Tree");},
+            _ => {error!("UseIndex Tree Type Command not supported");},
+        }
         KdTree::print_vec(&res);
         return KdTree::vec_field_to_tuple(&res);
     }
 
-    pub fn use_index_by_id(&self, query_type: &str, index_name: &str, container_id: ContainerId, attributes: &str, table: &Table) -> Vec<Tuple> {
+    fn use_index_knn(&self, tree_type: &str, index_name: &str, container_id: ContainerId, attributes: &str, _k: Option<&str>, table: &Table) -> Vec<Tuple> {
+        debug!("Comes to use_index_knn in Storage Manager");
+        let hf_map = &self.hf_map.read().unwrap();
+        let hf = hf_map.get(&container_id).unwrap();
+        let schema = &table.schema;
+        if _k.is_none() {
+            error!("no k specified");
+        }
+        let k = _k.unwrap().parse::<usize>().unwrap();
+        let attribute_vals = StorageManager::get_attribute_list(attributes);
+        let mut field_vec = Vec::new(); //LOTS OF ERROR CHECKING
+        let mut i = 0;
+        let mut idx_fields = Vec::new();
+        match tree_type {
+            "KD" => { idx_fields = hf.kd_index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.idx_fields.clone();},
+            "R" => {idx_fields = hf.r_index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.get_idx_fields().clone();},
+            _ => {error!("UseIndex Tree Type Command not supported");},
+        }
+        for attribute_val in attribute_vals {
+            match &schema.get_attribute(idx_fields[i]).unwrap().dtype {
+                Int => {field_vec.push(Field::IntField(attribute_val.parse::<i32>().unwrap()))},
+                String => {field_vec.push(Field::StringField(attribute_val))},
+            }
+            i += 1;
+        }
+        let mut res = Vec::new();
+        match tree_type {
+            "KD" => {res = hf.kd_index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.knn(&field_vec, k);},
+            "R" => {res = hf.r_index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.knn(&field_vec, k);},
+            _ => {error!("UseIndex Tree Type Command not supported");},
+        }      
+        KdTree::print_vec(&res);
+        return KdTree::vec_field_to_tuple(&res);
+    }
+
+    pub fn use_index_by_id(&self, tree_type: &str, query_type: &str, index_name: &str, container_id: ContainerId, attributes: &str, _k: Option<&str>, table: &Table) -> Vec<Tuple> {
         debug!("Comes to use_index_by_id in Storage Manager");
         match query_type {
-            "RANGE" => {self.use_index_range(index_name, container_id, attributes, table)},
-            "EQ" => {self.use_index_equal(index_name, container_id, attributes, table)},
+            "RANGE" => {self.use_index_range(tree_type, index_name, container_id, attributes, table)},
+            "EQ" => {self.use_index_equal(tree_type, index_name, container_id, attributes, table)},
+            "KNN" => {self.use_index_knn(tree_type, index_name, container_id, attributes, _k, table)},
             _ => {error!("UseIndex command not supported"); Vec::new()},
         }
     }
