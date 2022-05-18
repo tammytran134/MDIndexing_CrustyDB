@@ -140,11 +140,11 @@ pub fn handle_client_request(mut stream: TcpStream, server_state: &'static Serve
                 true
             }
         }
-        Err(_) => {
+        Err(e) => {
             error!(
-                "An error occurred, terminating connection with {}",
-                stream.peer_addr().unwrap()
-            );
+                            "An error occurred {:?}, terminating connection with {}",
+                            e, stream.peer_addr().unwrap()
+                        );
             stream.shutdown(Shutdown::Both).unwrap();
             // FIXME: (raul) shut this down properly
             error!("Shutting down crustydb due to error...");
