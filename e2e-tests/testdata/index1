@@ -5,13 +5,16 @@ statement ok
 \i csv/data.csv test
 
 statement ok
-\createIndex md_index test (a,b)
+\createIndex KD md_index test (a,b)
 
-statement ok
-\useIndex EQ md_index test (1,2)
+match csv/index1res1.csv
+\useIndex KD EQ md_index test (1,2)
 
-statement ok
-\useIndex RANGE md_index test (1,2);(1,3)
+match csv/index1res2.csv
+\useIndex KD RANGE md_index test (1,2);(1,3)
+
+match csv/index1res3.csv
+\useIndex KD KNN md_index test (4,5) 1
 
 statement ok
 \reset
