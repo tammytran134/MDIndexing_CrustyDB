@@ -113,7 +113,14 @@ pub fn handle_client_request(mut stream: TcpStream, server_state: &'static Serve
                     _ => match conductor.run_command(request_command, client_id, server_state) {
                         Ok(qr) => {
                             info!("Success COMMAND {:?}", qr);
-                            Response::Msg(qr.to_string())
+                            if quiet {
+                                debug!("Query result is good. Sending QuietOK");
+                                Response::QuietOk
+                            } else {
+                                info!("Success running SQL query");
+                                Response::QueryResult(common::QueryResult::new(&qr))
+                            }
+                            // Response::Msg(qr.to_string())
                         }
                         Err(err) => {
                             info!("Error while executing COMMAND error: {:?}", err);
