@@ -67,6 +67,25 @@ impl KdTree {
         res
     }
 
+    pub fn padding2(val: &Vec<Field>, idx_fields: &Vec<usize>, total_dim: usize) -> Vec<Field> {
+        if val.len() == total_dim {
+            return val.clone();
+        }
+        let mut res = Vec::new();
+        let mut curr_padded_idx = 0;
+        let mut curr_idx = 0;
+        for idx in idx_fields {
+            while curr_padded_idx < *idx {
+                res.push(IntField(0));
+                curr_padded_idx += 1;
+            }
+            res.push(val[curr_idx].clone());
+            curr_padded_idx += 1;
+            curr_idx += 1;
+        }
+        res
+    }
+
     fn compare_val(&self, val1: &Vec<Field>, val2: &Vec<Field>) -> bool {
         if val1.len() == 0 {
             if val2.len() == 0 {

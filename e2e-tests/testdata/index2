@@ -11,6 +11,9 @@ match csv/index2res1.csv
 \useIndex R EQ md_index test (7,15)
 
 match csv/index2res2.csv
+\useIndex R RANGE md_index test (4,2);(7,16)
+
+match csv/index2res3.csv
 \useIndex R KNN md_index test (7,16) 3
 
 statement ok

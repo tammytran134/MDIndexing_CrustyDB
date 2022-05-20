@@ -62,7 +62,7 @@ fn setup_data_range(bt: &mut Template, dim: usize) -> Vec<String> {
     res
 }
 
-fn setup_data_range_scan(bt: &mut Template, dim: usize) -> Vec<Vec<String>> {
+fn setup_data_range(bt: &mut Template, dim: usize) -> Vec<Vec<String>> {
     let mut res = Vec::new();
     let mut rng = rand::thread_rng();
     if dim == 2 {
@@ -235,13 +235,11 @@ fn bench_index_scan_2d_range_100(c: &mut Criterion) {
     let mut bt = Template::new();
 
     setup_table(&mut bt, "index100", 2, KD);
-    let data = setup_data_range_scan(&mut bt, 2);
+    let data = setup_data_range(&mut bt, 2);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
-        bt.add_command(Commands::ExecuteSQL(format!("select * from test where a >= {} and a <= {} 
-                                            and b >= {} and b <= {}", 
-                                            single_data[0], single_data[1], single_data[2],
-                                            single_data[3],))
+        bt.add_command(Commands::ExecuteSQL(format!("\\useIndex R RANGE md_index test {}", 
+                                            single_data))
         );        
     }
     bt.show_configuration();
@@ -252,13 +250,11 @@ fn bench_index_scan_2d_range_1000(c: &mut Criterion) {
     let mut bt = Template::new();
 
     setup_table(&mut bt, "index1000", 2, KD);
-    let data = setup_data_range_scan(&mut bt, 2);
+    let data = setup_data_range(&mut bt, 2);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
-        bt.add_command(Commands::ExecuteSQL(format!("select * from test where a >= {} and a <= {} 
-                                            and b >= {} and b <= {}", 
-                                            single_data[0], single_data[1], single_data[2],
-                                            single_data[3],))
+        bt.add_command(Commands::ExecuteSQL(format!("\\useIndex R RANGE md_index test {}", 
+        single_data))
         );        
     }
     bt.show_configuration();
@@ -269,13 +265,11 @@ fn bench_index_scan_2d_range_10000(c: &mut Criterion) {
     let mut bt = Template::new();
 
     setup_table(&mut bt, "index10000", 2, KD);
-    let data = setup_data_range_scan(&mut bt, 2);
+    let data = setup_data_range(&mut bt, 2);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
-        bt.add_command(Commands::ExecuteSQL(format!("select * from test where a >= {} and a <= {} 
-                                            and b >= {} and b <= {}", 
-                                            single_data[0], single_data[1], single_data[2],
-                                            single_data[3],))
+        bt.add_command(Commands::ExecuteSQL(format!("\\useIndex R RANGE md_index test {}", 
+        single_data))
         );        
     }
     bt.show_configuration();
@@ -286,13 +280,11 @@ fn bench_index_scan_2d_range_50000(c: &mut Criterion) {
     let mut bt = Template::new();
 
     setup_table(&mut bt, "index50000", 2, KD);
-    let data = setup_data_range_scan(&mut bt, 2);
+    let data = setup_data_range(&mut bt, 2);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
-        bt.add_command(Commands::ExecuteSQL(format!("select * from test where a >= {} and a <= {} 
-                                            and b >= {} and b <= {}", 
-                                            single_data[0], single_data[1], single_data[2],
-                                            single_data[3],))
+        bt.add_command(Commands::ExecuteSQL(format!("\\useIndex R RANGE md_index test {}", 
+        single_data))
         );        
     }
     bt.show_configuration();
@@ -303,13 +295,11 @@ fn bench_index_scan_3d_range_100(c: &mut Criterion) {
     let mut bt = Template::new();
 
     setup_table(&mut bt, "index100", 3, KD);
-    let data = setup_data_range_scan(&mut bt, 3);
+    let data = setup_data_range(&mut bt, 3);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
-        bt.add_command(Commands::ExecuteSQL(format!("select * from test where a >= {} and a <= {} 
-                                            and b >= {} and b <= {} and c >= {} and c <= {}", 
-                                            single_data[0], single_data[1], single_data[2],
-                                            single_data[3], single_data[4], single_data[5],))
+        bt.add_command(Commands::ExecuteSQL(format!("\\useIndex R RANGE md_index test {}", 
+        single_data))
         );        
     }
     bt.show_configuration();
@@ -320,13 +310,11 @@ fn bench_index_scan_3d_range_1000(c: &mut Criterion) {
     let mut bt = Template::new();
 
     setup_table(&mut bt, "index1000", 3, KD);
-    let data = setup_data_range_scan(&mut bt, 3);
+    let data = setup_data_range(&mut bt, 3);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
-        bt.add_command(Commands::ExecuteSQL(format!("select * from test where a >= {} and a <= {} 
-                                            and b >= {} and b <= {} and c >= {} and c <= {}", 
-                                            single_data[0], single_data[1], single_data[2],
-                                            single_data[3], single_data[4], single_data[5],))
+        bt.add_command(Commands::ExecuteSQL(format!("\\useIndex R RANGE md_index test {}", 
+        single_data))
         );        
     }
     bt.show_configuration();
@@ -337,13 +325,11 @@ fn bench_index_scan_3d_range_10000(c: &mut Criterion) {
     let mut bt = Template::new();
 
     setup_table(&mut bt, "index10000", 3, KD);
-    let data = setup_data_range_scan(&mut bt, 3);
+    let data = setup_data_range(&mut bt, 3);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
-        bt.add_command(Commands::ExecuteSQL(format!("select * from test where a >= {} and a <= {} 
-                                            and b >= {} and b <= {} and c >= {} and c <= {}", 
-                                            single_data[0], single_data[1], single_data[2],
-                                            single_data[3], single_data[4], single_data[5],))
+        bt.add_command(Commands::ExecuteSQL(format!("\\useIndex R RANGE md_index test {}", 
+        single_data))
         );        
     }
     bt.show_configuration();
@@ -354,13 +340,11 @@ fn bench_index_scan_3d_range_50000(c: &mut Criterion) {
     let mut bt = Template::new();
 
     setup_table(&mut bt, "index50000", 3, KD);
-    let data = setup_data_range_scan(&mut bt, 3);
+    let data = setup_data_range(&mut bt, 3);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
-        bt.add_command(Commands::ExecuteSQL(format!("select * from test where a >= {} and a <= {} 
-                                            and b >= {} and b <= {} and c >= {} and c <= {}", 
-                                            single_data[0], single_data[1], single_data[2],
-                                            single_data[3], single_data[4], single_data[5],))
+        bt.add_command(Commands::ExecuteSQL(format!("\\useIndex R RANGE md_index test {}", 
+        single_data))
         );        
     }
     bt.show_configuration();
@@ -595,31 +579,31 @@ criterion_group! {
     name = indexbench;
     config = Criterion::default().sample_size(10);
     targets =
-    // bench_index_kd_2d_range_100,
+    bench_index_kd_2d_range_100,
     // bench_index_kd_2d_range_1000,
     // bench_index_kd_2d_range_10000,
     // bench_index_kd_2d_range_50000,
-    // bench_index_scan_2d_range_100,
+    bench_index_scan_2d_range_100,
     // bench_index_scan_2d_range_1000,
     // bench_index_scan_2d_range_10000,
     // bench_index_scan_2d_range_50000,
-    // bench_index_kd_3d_range_100,
+    bench_index_kd_3d_range_100,
     // bench_index_kd_3d_range_1000,
     // bench_index_kd_3d_range_10000,
     // bench_index_kd_3d_range_50000,
-    // bench_index_scan_3d_range_100,
+    bench_index_scan_3d_range_100,
     // bench_index_scan_3d_range_1000,
     // bench_index_scan_3d_range_10000,
     // bench_index_scan_3d_range_50000,
-    // bench_index_kd_2d_knn_100,
+    bench_index_kd_2d_knn_100,
     // bench_index_kd_2d_knn_1000,
     // bench_index_kd_2d_knn_10000,
     // bench_index_kd_2d_knn_50000,
-    // bench_index_r_2d_knn_100,
+    bench_index_r_2d_knn_100,
     // bench_index_r_2d_knn_1000,
     // bench_index_r_2d_knn_10000,
     // bench_index_r_2d_knn_50000,
-    // bench_index_kd_3d_knn_100,
+    bench_index_kd_3d_knn_100,
     // bench_index_kd_3d_knn_1000,
     // bench_index_kd_3d_knn_10000,
     // bench_index_kd_3d_knn_50000,
