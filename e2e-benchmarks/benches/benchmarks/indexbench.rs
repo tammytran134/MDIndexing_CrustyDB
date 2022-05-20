@@ -8,7 +8,7 @@ use rand::Rng;
 const BASE_PATH: &str = "../test_data/";
 const KD: usize = 0;
 const R: usize = 1;
-const data_num: usize = 1;
+const data_num: usize = 50;
 const k: usize = 5;
 const MAX: i64 = 65536;
 
