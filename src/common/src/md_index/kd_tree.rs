@@ -227,7 +227,7 @@ impl KdTree {
         res
     }
 
-    fn if_smaller(&self, val1: &Vec<Field>, val2: &Vec<Field>) -> bool {
+    fn if_smaller(val1: &Vec<Field>, val2: &Vec<Field>, idx_fields: &Vec<usize>) -> bool {
         if val1.len() == 0 {
             if val2.len() == 0 {
                 return true
@@ -237,8 +237,8 @@ impl KdTree {
             }
         }
         else {
-            for i in 0..self.idx_fields.len() {
-                match (&val1[self.idx_fields[i]], &val2[self.idx_fields[i]]) {    
+            for i in 0..idx_fields.len() {
+                match (&val1[idx_fields[i]], &val2[idx_fields[i]]) {    
                     (IntField(x), IntField(y)) => {
                         if x > y {
                             return false
@@ -258,7 +258,7 @@ impl KdTree {
         }
     }
 
-    fn if_greater(&self, val1: &Vec<Field>, val2: &Vec<Field>) -> bool {
+    fn if_greater(val1: &Vec<Field>, val2: &Vec<Field>, idx_fields: &Vec<usize>) -> bool {
         if val1.len() == 0 {
             if val2.len() == 0 {
                 return true
@@ -268,8 +268,8 @@ impl KdTree {
             }
         }
         else {
-            for i in 0..self.idx_fields.len() {
-                match (&val1[self.idx_fields[i]], &val2[self.idx_fields[i]]) {    
+            for i in 0..idx_fields.len() {
+                match (&val1[idx_fields[i]], &val2[idx_fields[i]]) {    
                     (IntField(x), IntField(y)) => {
                         if x < y {
                             return false
@@ -289,8 +289,8 @@ impl KdTree {
         }
     }
 
-    fn if_within_range(&self, val: &Vec<Field>, min: &Vec<Field>, max: &Vec<Field>) -> bool {
-        self.if_smaller(val, max) && self.if_greater(val, min)
+    pub fn if_within_range(val: &Vec<Field>, min: &Vec<Field>, max: &Vec<Field>, idx_fields: &Vec<usize>) -> bool {
+        KdTree::if_smaller(val, max, idx_fields) && KdTree::if_greater(val, min, idx_fields)
     }
 
     fn range_query_helper(&mut self, min:&Vec<Field>, max: &Vec<Field>, node_idx: usize, depth: usize, res: &mut Vec<Vec<Field>>) {
@@ -301,14 +301,14 @@ impl KdTree {
         if self.arr[node_idx].is_none() {
             return
         }
-        if self.if_within_range(&self.arr[node_idx].as_ref().unwrap(), min, max) {
+        if KdTree::if_within_range(&self.arr[node_idx].as_ref().unwrap(), min, max, &self.idx_fields) {
             res.push(self.arr[node_idx].as_ref().unwrap().clone());
         }
         let curr_dim = depth % self.dim;
-        if self.compare_val_at_dim(min, &self.arr[node_idx].as_ref().unwrap(), curr_dim) < 0 {
+        if self.compare_val_at_dim(min, &self.arr[node_idx].as_ref().unwrap(), curr_dim) <= 0 {
             self.range_query_helper(min, max, node_idx*2+1, depth + 1, res)
         }
-        if self.compare_val_at_dim(&self.arr[node_idx].as_ref().unwrap(), max, curr_dim) < 0 {
+        if self.compare_val_at_dim(&self.arr[node_idx].as_ref().unwrap(), max, curr_dim) <= 0 {
             self.range_query_helper(min, max, node_idx*2+2, depth + 1, res)
         }        
     }

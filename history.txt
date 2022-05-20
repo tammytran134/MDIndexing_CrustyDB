@@ -1,101 +1,101 @@
 #V2
+\\c testdb
+CREATE TABLE test (a int primary key,b int, c int);
+\\i test_data/index100.csv test
+\\createIndex KD md_index test (b,c)
+\\useIndex KD KNN md_index test (100000,100000) 5
+\\reset
+\\r testdb
+\\c testdb
+CREATE TABLE test (a int primary key,b int, c int);
+\\i test_data/index100.csv test
+\\createIndex KD md_index test (b,c)
+\\useIndex KD KNN md_index test (100000,100000) 5
+\\useIndex KD KNN md_index test (10000,10000) 5
+\\reset
+\\r testdb
+\\c testdb
+CREATE TABLE test (a int primary key,b int, c int);
+\\i test_data/index100.csv test
+\\createIndex KD md_index test (b,c)
+\\useIndex KD KNN md_index test (10000,10000) 5
+\\reset
 \\r testdb
 \\c testdb
 create table test (a int primary key,b int)
-\\i csv/data.csv test
-\\i e2e/tests/csv/data.csv test
 \\i e2e-tests/csv/data.csv test
-select * from test
 \\createIndex KD md_index test (a,b)
 \\useIndex KD EQ md_index test (1,2)
 \\useIndex KD RANGE md_index test (1,2);(1,3)
 \\useIndex KD KNN md_index test (4,5) 1
-\\r testdb
-\\c testdb
-create table test (a int primary key,b int, c int)
-\\i e2e-tests/csv/index2.csv test
-select * from test
 \\reset
 \\r testdb
 \\c testdb
-create table test (a int primary key,b int, c int)
-\\i e2e-tests/csv/index2.csv test
-select * from test
-\\createIndex R md_index test (b,c)
-\\useIndex R EQ md_index test (7,15)
-\\useIndex R KNN md_index test (7,16) 1
-\\useIndex R KNN md_index test (7,16) 2
-\\useIndex R KNN md_index test (7,16) 3
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+\\createIndex KD md_index test (a,b)
+\\useIndex KD EQ md_index test (1,2)
+\\useIndex KD RANGE md_index test (1,2);(1,3)
 \\reset
 \\r testdb
 \\c testdb
-create table test (a int primary key,b int, c int)
-select * from test
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+\\createIndex KD md_index test (a,b)
+\\useIndex KD EQ md_index test (1,2)
+\\useIndex KD RANGE md_index test (1,2);(1,3)
 \\reset
 \\r testdb
 \\c testdb
-create table test (a int primary key,b int, c int)
-select * from test
-\\i e2e-tests/csv/index2.csv test
-select * from test
-select * from test where a >= 2 and a <= 18 and b >= 4 and b <= 15
-select * from test where test.a >= 2 and test.a <= 18 and test.b >= 4 and test.b <= 15
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+\\createIndex KD md_index test (a,b)
+\\useIndex KD RANGE md_index test (1,2);(1,3)
 \\reset
 \\r testdb
 \\c testdb
-CREATE TABLE test (a int primary key,b int, c int);
-\\i test_data/index100.csv test
-createIndex KD md_index test (a,b,c)
-\\createIndex KD md_index test (a,b,c)
-\\useIndex KD RANGE md_index test (1,1,1);(5,5,5)
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+\\useIndex KD RANGE md_index test (1,2);(1,3)
 \\reset
 \\r testdb
 \\c testdb
-CREATE TABLE test (a int primary key,b int, c int);
-\\i test_data/index100.csv test
-\\useIndex KD RANGE md_index test (1,1,1);(5,5,5)
-\\createIndex KD md_index test (a,b,c)
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+\\createIndex KD md_index test (a,b)
+\\useIndex KD RANGE md_index test (1,2);(1,3)
 \\reset
 \\r testdb
 \\c testdb
-CREATE TABLE test (a int primary key,b int, c int);
-\\i test_data/index100.csv test
-\\createIndex KD md_index test (a,b,c)
-\\useIndex KD RANGE md_index test (1,1,1);(5,5,5)
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+\\createIndex KD md_index test (a,b)
+\\useIndex KD RANGE md_index test (1,2);(1,3)
 \\reset
 \\r testdb
 \\c testdb
-CREATE TABLE test (a int primary key,b int, c int);
-\\i test_data/index100.csv test
-\\createIndex KD md_index test (a,b,c)
-\\useIndex KD RANGE md_index test (1,1,1);(5,5,5)
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+\\createIndex KD md_index test (a,b)
+\\useIndex KD RANGE md_index test (1,2);(1,3)
 \\reset
 \\r testdb
 \\c testdb
-CREATE TABLE test (a int primary key,b int, c int);
-\\i test_data/index100.csv test
-createIndex KD md_index test (b,c)
-\\createIndex KD md_index test (b,c)
-\\useIndex KD KNN md_index test (100000,100000) 5
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+\\createIndex KD md_index test (a,b)
+\\useIndex KD RANGE md_index test (1,2);(1,3)
 \\reset
 \\r testdb
 \\c testdb
-CREATE TABLE test (a int primary key,b int, c int);
-\\i test_data/index100.csv test
-\\createIndex KD md_index test (b,c)
-\\useIndex KD KNN md_index test (100000,100000) 5
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+\\createIndex KD md_index test (a,b)
+\\useIndex KD RANGE md_index test (1,2);(1,3)
 \\reset
 \\r testdb
 \\c testdb
-CREATE TABLE test (a int primary key,b int, c int);
-\\i test_data/index100.csv test
-\\createIndex KD md_index test (b,c)
-\\useIndex KD KNN md_index test (100000,100000) 5
-\\useIndex KD KNN md_index test (10000,10000) 5
-\\reset
-\\r testdb
-\\c testdb
-CREATE TABLE test (a int primary key,b int, c int);
-\\i test_data/index100.csv test
-\\createIndex KD md_index test (b,c)
-\\useIndex KD KNN md_index test (10000,10000) 5
+create table test (a int primary key,b int)
+\\i e2e-tests/csv/data.csv test
+\\createIndex KD md_index test (a,b)
+\\useIndex KD RANGE md_index test (1,2);(1,3)

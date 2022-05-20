@@ -140,6 +140,15 @@ impl StorageManager {
         attribute_list.clone()  
     }
 
+    fn scan_tuple_for_range(tuple: &Tuple, min: &Vec<Field>, max: &Vec<Field>, idx_fields: &Vec<usize>) -> bool {
+        if KdTree::if_within_range(&tuple.field_vals, min, max, idx_fields) {
+            return true
+        }
+        else {
+            return false
+        }
+    }
+
     pub fn create_index_by_id(&self, tree_type: &str, index_name: &str, container_id: ContainerId, attributes: &str, table: &Table) {
         debug!("Comes to create_index_by_id in Storage Manager");
         let hf_map = &self.hf_map.read().unwrap();
@@ -215,7 +224,7 @@ impl StorageManager {
         let hf = hf_map.get(&container_id).unwrap();
         let schema = &table.schema;
         let mut tokens = attributes.split(";");
-        let mut i = 0;
+        let mut j = 0;
         let mut min = Vec::new();
         let mut max = Vec::new();
         let mut idx_fields = Vec::new();
@@ -228,20 +237,41 @@ impl StorageManager {
             let min_max_val_list = StorageManager::get_attribute_list(attribute_min_max_val);
             for i in 0..min_max_val_list.len() {
                 match &schema.get_attribute(idx_fields[i]).unwrap().dtype {
-                    Int => {min.push(Field::IntField(min_max_val_list[0].parse::<i32>().unwrap()));
-                            max.push(Field::IntField(min_max_val_list[1].parse::<i32>().unwrap()))},
-                    String => {min.push(Field::StringField(min_max_val_list[0].to_string()));
-                                max.push(Field::StringField(min_max_val_list[1].to_string()))},
+                    Int => {
+                            if j == 0 {
+                                min.push(Field::IntField(min_max_val_list[i].parse::<i32>().unwrap()));
+                            }
+                            else {
+                                max.push(Field::IntField(min_max_val_list[i].parse::<i32>().unwrap()));
+                            }
+                        },
+                    String => {
+                        if j == 0 {
+                            min.push(Field::StringField(min_max_val_list[i].to_string()));
+                        }
+                        else {
+                            max.push(Field::StringField(min_max_val_list[i].to_string()));
+                        }
+                    }
                 }
-            }          
+            }     
+            j += 1;     
         }
         let mut res = Vec::new();
         match tree_type {
-            "KD" => {res = hf.kd_index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.range_query(&min, &max);},
-            "R" => {error!("UseIndex Range Query Command not supported for R Tree");},
+            "KD" => {
+                res = hf.kd_index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.range_query(&min, &max);},
+            "R" => {     
+                let hf_iterator = self.get_iterator(container_id, TransactionId::new(), Permissions::ReadOnly);   
+                for (i, val) in hf_iterator.enumerate() {
+                    let tuple = Tuple::from_bytes(&val);
+                    if StorageManager::scan_tuple_for_range(&tuple, &min, &max, &idx_fields) {
+                        res.push(tuple.field_vals.clone());
+                    }
+                }
+            },
             _ => {error!("UseIndex Tree Type Command not supported");},
         }
-        //KdTree::print_vec(&res);
         return KdTree::vec_field_to_tuple(&res);
     }
 
