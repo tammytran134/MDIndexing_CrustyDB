@@ -541,10 +541,10 @@ criterion_group! {
     name = indexbench;
     config = Criterion::default().sample_size(10);
     targets =
-    bench_index_kd_2d_range_100,
-    bench_index_scan_2d_range_100,
-    bench_index_kd_3d_range_100,
-    bench_index_scan_3d_range_100,
+    // bench_index_kd_2d_range_100,
+    // bench_index_scan_2d_range_100,
+    // bench_index_kd_3d_range_100,
+    // bench_index_scan_3d_range_100,
     // bench_index_kd_2d_knn_100,
     // bench_index_r_2d_knn_100,
     // bench_index_kd_3d_knn_100,
@@ -557,8 +557,8 @@ criterion_group! {
     // bench_index_r_2d_knn_1000,
     // bench_index_kd_3d_knn_1000,
     // bench_index_r_3d_knn_1000,
-    // bench_index_kd_2d_range_5000,
-    // bench_index_scan_2d_range_5000,
+    bench_index_kd_2d_range_5000,
+    bench_index_scan_2d_range_5000,
     // bench_index_kd_3d_range_5000,
     // bench_index_scan_3d_range_5000,
     // bench_index_kd_2d_knn_5000,
