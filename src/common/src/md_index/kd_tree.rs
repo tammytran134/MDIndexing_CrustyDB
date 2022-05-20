@@ -54,14 +54,12 @@ impl KdTree {
         }
         let mut res = Vec::new();
         let mut curr_padded_idx = 0;
-        let mut curr_idx = 0;
         for idx in &self.idx_fields {
             while curr_padded_idx < *idx {
                 res.push(IntField(0));
                 curr_padded_idx += 1;
             }
-            res.push(val[curr_idx].clone());
-            curr_idx += 1;
+            res.push(val[*idx].clone());
             curr_padded_idx += 1;
             continue;
         }
