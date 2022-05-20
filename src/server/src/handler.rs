@@ -120,7 +120,6 @@ pub fn handle_client_request(mut stream: TcpStream, server_state: &'static Serve
                                 info!("Success running SQL query");
                                 Response::QueryResult(common::QueryResult::new(&qr))
                             }
-                            // Response::Msg(qr.to_string())
                         }
                         Err(err) => {
                             info!("Error while executing COMMAND error: {:?}", err);

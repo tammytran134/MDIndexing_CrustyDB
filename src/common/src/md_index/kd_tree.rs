@@ -358,7 +358,7 @@ impl KdTree {
                 heap.push(KNN {dist: curr_dist, node_idx});
             }
         }
-        println!("{:?}", heap);
+        //println!("{:?}", heap);
         let mut next = node_idx*2 + 2;
         let mut other = node_idx*2 + 1;
         if self.compare_val_at_dim(val, &self.arr[node_idx].as_ref().unwrap(), curr_dim) < 0 {

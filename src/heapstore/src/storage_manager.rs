@@ -205,7 +205,7 @@ impl StorageManager {
             "R" => {res = hf.r_index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.get(&field_vec);},
             _ => {error!("UseIndex Tree Type Command not supported");},
         }        
-        KdTree::print_vec(&res);
+        //KdTree::print_vec(&res);
         return KdTree::vec_field_to_tuple(&res);
     }
 
@@ -240,7 +240,7 @@ impl StorageManager {
             "R" => {error!("UseIndex Range Query Command not supported for R Tree");},
             _ => {error!("UseIndex Tree Type Command not supported");},
         }
-        KdTree::print_vec(&res);
+        //KdTree::print_vec(&res);
         return KdTree::vec_field_to_tuple(&res);
     }
 
@@ -275,7 +275,7 @@ impl StorageManager {
             "R" => {res = hf.r_index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.knn(&field_vec, k);},
             _ => {error!("UseIndex Tree Type Command not supported");},
         }      
-        KdTree::print_vec(&res);
+        //KdTree::print_vec(&res);
         return KdTree::vec_field_to_tuple(&res);
     }
 
