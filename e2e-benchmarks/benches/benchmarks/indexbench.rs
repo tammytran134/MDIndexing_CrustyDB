@@ -546,7 +546,7 @@ criterion_group! {
     // bench_index_kd_2d_range_10000,
     // bench_index_kd_2d_range_50000,
     // bench_index_scan_2d_range_100,
-    // bench_index_scan_2d_range_1000,
+    bench_index_scan_2d_range_1000,
     // bench_index_scan_2d_range_10000,
     // bench_index_scan_2d_range_50000,
     // bench_index_kd_3d_range_100,
