@@ -226,13 +226,14 @@ impl StorageManager {
         }
         while let Some(attribute_min_max_val) = tokens.next() {
             let min_max_val_list = StorageManager::get_attribute_list(attribute_min_max_val);
-            match &schema.get_attribute(idx_fields[i]).unwrap().dtype {
-                Int => {min.push(Field::IntField(min_max_val_list[0].parse::<i32>().unwrap()));
-                        max.push(Field::IntField(min_max_val_list[1].parse::<i32>().unwrap()))},
-                String => {min.push(Field::StringField(min_max_val_list[0].to_string()));
-                            max.push(Field::StringField(min_max_val_list[1].to_string()))},
-            }
-            i += 1;            
+            for i in 0..min_max_val_list.len() {
+                match &schema.get_attribute(idx_fields[i]).unwrap().dtype {
+                    Int => {min.push(Field::IntField(min_max_val_list[0].parse::<i32>().unwrap()));
+                            max.push(Field::IntField(min_max_val_list[1].parse::<i32>().unwrap()))},
+                    String => {min.push(Field::StringField(min_max_val_list[0].to_string()));
+                                max.push(Field::StringField(min_max_val_list[1].to_string()))},
+                }
+            }          
         }
         let mut res = Vec::new();
         match tree_type {
