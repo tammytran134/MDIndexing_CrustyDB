@@ -123,10 +123,10 @@ fn bench_index_kd_2d_range_10000(c: &mut Criterion) {
     bt.bench_server(c, "index_kd_2d_range_10000");
 }
 
-fn bench_index_kd_2d_range_50000(c: &mut Criterion) {
+fn bench_index_kd_2d_range_5000(c: &mut Criterion) {
     let mut bt = Template::new();
 
-    setup_table(&mut bt, "index50000", 2, KD);
+    setup_table(&mut bt, "index5000", 2, KD);
     let data = setup_data_range(&mut bt, 2);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
@@ -134,7 +134,7 @@ fn bench_index_kd_2d_range_50000(c: &mut Criterion) {
         );        
     }
     bt.show_configuration();
-    bt.bench_server(c, "index_kd_2d_range_50000");
+    bt.bench_server(c, "index_kd_2d_range_5000");
 }
 
 fn bench_index_kd_3d_range_100(c: &mut Criterion) {
@@ -179,10 +179,10 @@ fn bench_index_kd_3d_range_10000(c: &mut Criterion) {
     bt.bench_server(c, "index_kd_3d_range_10000");
 }
 
-fn bench_index_kd_3d_range_50000(c: &mut Criterion) {
+fn bench_index_kd_3d_range_5000(c: &mut Criterion) {
     let mut bt = Template::new();
 
-    setup_table(&mut bt, "index50000", 3, KD);
+    setup_table(&mut bt, "index5000", 3, KD);
     let data = setup_data_range(&mut bt, 3);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
@@ -190,7 +190,7 @@ fn bench_index_kd_3d_range_50000(c: &mut Criterion) {
         );        
     }
     bt.show_configuration();
-    bt.bench_server(c, "index_kd_3d_range_50000");
+    bt.bench_server(c, "index_kd_3d_range_5000");
 }
 
 fn bench_index_scan_2d_range_100(c: &mut Criterion) {
@@ -238,10 +238,10 @@ fn bench_index_scan_2d_range_10000(c: &mut Criterion) {
     bt.bench_server(c, "index_scan_2d_range_10000");
 }
 
-fn bench_index_scan_2d_range_50000(c: &mut Criterion) {
+fn bench_index_scan_2d_range_5000(c: &mut Criterion) {
     let mut bt = Template::new();
 
-    setup_table(&mut bt, "index50000", 2, R);
+    setup_table(&mut bt, "index5000", 2, R);
     let data = setup_data_range(&mut bt, 2);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
@@ -250,7 +250,7 @@ fn bench_index_scan_2d_range_50000(c: &mut Criterion) {
         );        
     }
     bt.show_configuration();
-    bt.bench_server(c, "index_scan_2d_range_50000");
+    bt.bench_server(c, "index_scan_2d_range_5000");
 }
 
 fn bench_index_scan_3d_range_100(c: &mut Criterion) {
@@ -298,10 +298,10 @@ fn bench_index_scan_3d_range_10000(c: &mut Criterion) {
     bt.bench_server(c, "index_scan_3d_range_10000");
 }
 
-fn bench_index_scan_3d_range_50000(c: &mut Criterion) {
+fn bench_index_scan_3d_range_5000(c: &mut Criterion) {
     let mut bt = Template::new();
 
-    setup_table(&mut bt, "index50000", 3, R);
+    setup_table(&mut bt, "index5000", 3, R);
     let data = setup_data_range(&mut bt, 3);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
@@ -310,7 +310,7 @@ fn bench_index_scan_3d_range_50000(c: &mut Criterion) {
         );        
     }
     bt.show_configuration();
-    bt.bench_server(c, "index_scan_3d_range_50000");
+    bt.bench_server(c, "index_scan_3d_range_5000");
 }
 
 fn bench_index_kd_2d_knn_100(c: &mut Criterion) {
@@ -355,10 +355,10 @@ fn bench_index_kd_2d_knn_10000(c: &mut Criterion) {
     bt.bench_server(c, "index_kd_2d_knn_10000");
 }
 
-fn bench_index_kd_2d_knn_50000(c: &mut Criterion) {
+fn bench_index_kd_2d_knn_5000(c: &mut Criterion) {
     let mut bt = Template::new();
 
-    setup_table(&mut bt, "index50000", 2, KD);
+    setup_table(&mut bt, "index5000", 2, KD);
     let data = setup_data_knn(&mut bt, 2);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
@@ -366,7 +366,7 @@ fn bench_index_kd_2d_knn_50000(c: &mut Criterion) {
         );        
     }
     bt.show_configuration();
-    bt.bench_server(c, "index_kd_2d_knn_50000");
+    bt.bench_server(c, "index_kd_2d_knn_5000");
 }
 
 fn bench_index_kd_3d_knn_100(c: &mut Criterion) {
@@ -411,10 +411,10 @@ fn bench_index_kd_3d_knn_10000(c: &mut Criterion) {
     bt.bench_server(c, "index_kd_3d_knn_10000");
 }
 
-fn bench_index_kd_3d_knn_50000(c: &mut Criterion) {
+fn bench_index_kd_3d_knn_5000(c: &mut Criterion) {
     let mut bt = Template::new();
 
-    setup_table(&mut bt, "index50000", 3, KD);
+    setup_table(&mut bt, "index5000", 3, KD);
     let data = setup_data_knn(&mut bt, 3);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
@@ -422,7 +422,7 @@ fn bench_index_kd_3d_knn_50000(c: &mut Criterion) {
         );        
     }
     bt.show_configuration();
-    bt.bench_server(c, "index_kd_3d_knn_50000");
+    bt.bench_server(c, "index_kd_3d_knn_5000");
 }
 
 fn bench_index_r_2d_knn_100(c: &mut Criterion) {
@@ -467,10 +467,10 @@ fn bench_index_r_2d_knn_10000(c: &mut Criterion) {
     bt.bench_server(c, "index_r_2d_knn_10000");
 }
 
-fn bench_index_r_2d_knn_50000(c: &mut Criterion) {
+fn bench_index_r_2d_knn_5000(c: &mut Criterion) {
     let mut bt = Template::new();
 
-    setup_table(&mut bt, "index50000", 2, R);
+    setup_table(&mut bt, "index5000", 2, R);
     let data = setup_data_knn(&mut bt, 2);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
@@ -478,7 +478,7 @@ fn bench_index_r_2d_knn_50000(c: &mut Criterion) {
         );        
     }
     bt.show_configuration();
-    bt.bench_server(c, "index_r_2d_knn_50000");
+    bt.bench_server(c, "index_r_2d_knn_5000");
 }
 
 fn bench_index_r_3d_knn_100(c: &mut Criterion) {
@@ -523,10 +523,10 @@ fn bench_index_r_3d_knn_10000(c: &mut Criterion) {
     bt.bench_server(c, "index_r_3d_knn_10000");
 }
 
-fn bench_index_r_3d_knn_50000(c: &mut Criterion) {
+fn bench_index_r_3d_knn_5000(c: &mut Criterion) {
     let mut bt = Template::new();
 
-    setup_table(&mut bt, "index50000", 3, R);
+    setup_table(&mut bt, "index5000", 3, R);
     let data = setup_data_knn(&mut bt, 3);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
@@ -534,7 +534,7 @@ fn bench_index_r_3d_knn_50000(c: &mut Criterion) {
         );        
     }
     bt.show_configuration();
-    bt.bench_server(c, "index_r_3d_knn_50000");
+    bt.bench_server(c, "index_r_3d_knn_5000");
 }
 
 criterion_group! {
@@ -557,22 +557,22 @@ criterion_group! {
     // bench_index_r_2d_knn_1000,
     // bench_index_kd_3d_knn_1000,
     // bench_index_r_3d_knn_1000,
-    bench_index_kd_2d_range_10000,
-    bench_index_scan_2d_range_10000,
-    bench_index_kd_3d_range_10000,
-    bench_index_scan_3d_range_10000,
-    bench_index_kd_2d_knn_10000,
-    bench_index_r_2d_knn_10000,
-    bench_index_kd_3d_knn_10000,
-    bench_index_r_3d_knn_10000,
-    // bench_index_kd_2d_range_50000,
-    // bench_index_scan_2d_range_50000,
-    // bench_index_kd_3d_range_50000,
-    // bench_index_scan_3d_range_50000,
-    // bench_index_kd_2d_knn_50000,
-    // bench_index_r_2d_knn_50000,
-    // bench_index_kd_3d_knn_50000,
-    // bench_index_r_3d_knn_50000,
+    bench_index_kd_2d_range_5000,
+    bench_index_scan_2d_range_5000,
+    bench_index_kd_3d_range_5000,
+    bench_index_scan_3d_range_5000,
+    // bench_index_kd_2d_knn_5000,
+    // bench_index_r_2d_knn_5000,
+    // bench_index_kd_3d_knn_5000,
+    // bench_index_r_3d_knn_5000,
+    // bench_index_kd_2d_range_10000,
+    // bench_index_scan_2d_range_10000,
+    // bench_index_kd_3d_range_10000,
+    // bench_index_scan_3d_range_10000,
+    // bench_index_kd_2d_knn_10000,
+    // bench_index_r_2d_knn_10000,
+    // bench_index_kd_3d_knn_10000,
+    // bench_index_r_3d_knn_10000,
 }
 
 // const test_dim: [usize; 7] = [1, 2, 3, 5, 10, 15, 30];
