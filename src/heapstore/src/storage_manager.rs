@@ -270,6 +270,7 @@ impl StorageManager {
             }
             i += 1;
         }
+        debug!("field vec is {:?}", &field_vec);
         let mut res = Vec::new();
         match tree_type {
             "KD" => {res = hf.kd_index_map.write().unwrap().get(index_name).unwrap().write().unwrap().tree.knn(&field_vec, k);},
