@@ -265,8 +265,8 @@ impl StorageManager {
                 let hf_iterator = self.get_iterator(container_id, TransactionId::new(), Permissions::ReadOnly);   
                 let padded_min = KdTree::padding2(&min, &idx_fields, schema.attributes.len());
                 let padded_max = KdTree::padding2(&max, &idx_fields, schema.attributes.len());
-                debug!("min is {:?}", padded_min);
-                debug!("max is {:?}", padded_max);
+                // debug!("min is {:?}", padded_min);
+                // debug!("max is {:?}", padded_max);
                 for (i, val) in hf_iterator.enumerate() {
                     let tuple = Tuple::from_bytes(&val);
                     if StorageManager::scan_tuple_for_range(&tuple, &padded_min, &padded_max, &idx_fields) {
