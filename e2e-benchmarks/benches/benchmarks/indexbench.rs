@@ -8,7 +8,7 @@ use rand::Rng;
 const BASE_PATH: &str = "../test_data/";
 const KD: usize = 0;
 const R: usize = 1;
-const data_num: usize = 50;
+const data_num: usize = 100;
 const k: usize = 5;
 const MAX: i64 = 65536;
 
@@ -624,8 +624,8 @@ criterion_group! {
     // bench_index_kd_3d_knn_10000,
     // bench_index_kd_3d_knn_50000,
     // bench_index_r_3d_knn_100,
-    bench_index_r_3d_knn_1000,
-    // bench_index_r_3d_knn_10000,
+    // bench_index_r_3d_knn_1000,
+    bench_index_r_3d_knn_10000,
     // bench_index_r_3d_knn_50000,
 }
 
