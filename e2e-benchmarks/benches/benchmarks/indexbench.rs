@@ -200,7 +200,7 @@ fn bench_index_scan_2d_range_100(c: &mut Criterion) {
     let data = setup_data_range(&mut bt, 2);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
-        bt.add_command(Commands::ExecuteSQL(format!("\\useIndex R RANGE md_index test {}", 
+        bt.add_command(Commands::UseIndex(format!("\\useIndex R RANGE md_index test {}", 
                                             single_data))
         );        
     }
@@ -215,7 +215,7 @@ fn bench_index_scan_2d_range_1000(c: &mut Criterion) {
     let data = setup_data_range(&mut bt, 2);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
-        bt.add_command(Commands::ExecuteSQL(format!("\\useIndex R RANGE md_index test {}", 
+        bt.add_command(Commands::UseIndex(format!("\\useIndex R RANGE md_index test {}", 
         single_data))
         );        
     }
@@ -230,7 +230,7 @@ fn bench_index_scan_2d_range_10000(c: &mut Criterion) {
     let data = setup_data_range(&mut bt, 2);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
-        bt.add_command(Commands::ExecuteSQL(format!("\\useIndex R RANGE md_index test {}", 
+        bt.add_command(Commands::UseIndex(format!("\\useIndex R RANGE md_index test {}", 
         single_data))
         );        
     }
@@ -245,7 +245,7 @@ fn bench_index_scan_2d_range_50000(c: &mut Criterion) {
     let data = setup_data_range(&mut bt, 2);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
-        bt.add_command(Commands::ExecuteSQL(format!("\\useIndex R RANGE md_index test {}", 
+        bt.add_command(Commands::UseIndex(format!("\\useIndex R RANGE md_index test {}", 
         single_data))
         );        
     }
@@ -260,7 +260,7 @@ fn bench_index_scan_3d_range_100(c: &mut Criterion) {
     let data = setup_data_range(&mut bt, 3);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
-        bt.add_command(Commands::ExecuteSQL(format!("\\useIndex R RANGE md_index test {}", 
+        bt.add_command(Commands::UseIndex(format!("\\useIndex R RANGE md_index test {}", 
         single_data))
         );        
     }
@@ -275,7 +275,7 @@ fn bench_index_scan_3d_range_1000(c: &mut Criterion) {
     let data = setup_data_range(&mut bt, 3);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
-        bt.add_command(Commands::ExecuteSQL(format!("\\useIndex R RANGE md_index test {}", 
+        bt.add_command(Commands::UseIndex(format!("\\useIndex R RANGE md_index test {}", 
         single_data))
         );        
     }
@@ -290,7 +290,7 @@ fn bench_index_scan_3d_range_10000(c: &mut Criterion) {
     let data = setup_data_range(&mut bt, 3);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
-        bt.add_command(Commands::ExecuteSQL(format!("\\useIndex R RANGE md_index test {}", 
+        bt.add_command(Commands::UseIndex(format!("\\useIndex R RANGE md_index test {}", 
         single_data))
         );        
     }
@@ -305,7 +305,7 @@ fn bench_index_scan_3d_range_50000(c: &mut Criterion) {
     let data = setup_data_range(&mut bt, 3);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
-        bt.add_command(Commands::ExecuteSQL(format!("\\useIndex R RANGE md_index test {}", 
+        bt.add_command(Commands::UseIndex(format!("\\useIndex R RANGE md_index test {}", 
         single_data))
         );        
     }
