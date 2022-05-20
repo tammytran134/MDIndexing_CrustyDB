@@ -196,7 +196,7 @@ fn bench_index_kd_3d_range_50000(c: &mut Criterion) {
 fn bench_index_scan_2d_range_100(c: &mut Criterion) {
     let mut bt = Template::new();
 
-    setup_table(&mut bt, "index100", 2, KD);
+    setup_table(&mut bt, "index100", 2, R);
     let data = setup_data_range(&mut bt, 2);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
@@ -211,7 +211,7 @@ fn bench_index_scan_2d_range_100(c: &mut Criterion) {
 fn bench_index_scan_2d_range_1000(c: &mut Criterion) {
     let mut bt = Template::new();
 
-    setup_table(&mut bt, "index1000", 2, KD);
+    setup_table(&mut bt, "index1000", 2, R);
     let data = setup_data_range(&mut bt, 2);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
@@ -226,7 +226,7 @@ fn bench_index_scan_2d_range_1000(c: &mut Criterion) {
 fn bench_index_scan_2d_range_10000(c: &mut Criterion) {
     let mut bt = Template::new();
 
-    setup_table(&mut bt, "index10000", 2, KD);
+    setup_table(&mut bt, "index10000", 2, R);
     let data = setup_data_range(&mut bt, 2);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
@@ -241,7 +241,7 @@ fn bench_index_scan_2d_range_10000(c: &mut Criterion) {
 fn bench_index_scan_2d_range_50000(c: &mut Criterion) {
     let mut bt = Template::new();
 
-    setup_table(&mut bt, "index50000", 2, KD);
+    setup_table(&mut bt, "index50000", 2, R);
     let data = setup_data_range(&mut bt, 2);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
@@ -256,7 +256,7 @@ fn bench_index_scan_2d_range_50000(c: &mut Criterion) {
 fn bench_index_scan_3d_range_100(c: &mut Criterion) {
     let mut bt = Template::new();
 
-    setup_table(&mut bt, "index100", 3, KD);
+    setup_table(&mut bt, "index100", 3, R);
     let data = setup_data_range(&mut bt, 3);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
@@ -271,7 +271,7 @@ fn bench_index_scan_3d_range_100(c: &mut Criterion) {
 fn bench_index_scan_3d_range_1000(c: &mut Criterion) {
     let mut bt = Template::new();
 
-    setup_table(&mut bt, "index1000", 3, KD);
+    setup_table(&mut bt, "index1000", 3, R);
     let data = setup_data_range(&mut bt, 3);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
@@ -286,7 +286,7 @@ fn bench_index_scan_3d_range_1000(c: &mut Criterion) {
 fn bench_index_scan_3d_range_10000(c: &mut Criterion) {
     let mut bt = Template::new();
 
-    setup_table(&mut bt, "index10000", 3, KD);
+    setup_table(&mut bt, "index10000", 3, R);
     let data = setup_data_range(&mut bt, 3);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
@@ -301,7 +301,7 @@ fn bench_index_scan_3d_range_10000(c: &mut Criterion) {
 fn bench_index_scan_3d_range_50000(c: &mut Criterion) {
     let mut bt = Template::new();
 
-    setup_table(&mut bt, "index50000", 3, KD);
+    setup_table(&mut bt, "index50000", 3, R);
     let data = setup_data_range(&mut bt, 3);
     bt.add_command(Commands::QuietMode);
     for single_data in data {
