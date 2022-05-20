@@ -40,9 +40,9 @@ fn setup_data_range(bt: &mut Template, dim: usize) -> Vec<String> {
     if dim == 2 {
         for i in 0..data_num {
             let num1 = rng.gen_range(0..MAX);
-            let num2 = rng.gen_range(num1+1..MAX);
-            let num3 = rng.gen_range(0..MAX);
-            let num4 = rng.gen_range(num3+1..MAX);
+            let num2 = rng.gen_range(0..MAX);
+            let num3 = rng.gen_range(num1+1..MAX);
+            let num4 = rng.gen_range(num2+1..MAX);
             res.push(format!("({},{});({},{})", num1.to_string(), num2.to_string(), 
             num3.to_string(), num4.to_string()));
         }
@@ -50,11 +50,11 @@ fn setup_data_range(bt: &mut Template, dim: usize) -> Vec<String> {
     else {
         for i in 0..data_num {
             let num1 = rng.gen_range(0..MAX);
-            let num2 = rng.gen_range(num1+1..MAX);
+            let num2 = rng.gen_range(0..MAX);
             let num3 = rng.gen_range(0..MAX);
-            let num4 = rng.gen_range(num3+1..MAX);
-            let num5 = rng.gen_range(0..MAX);
-            let num6 = rng.gen_range(num5+1..MAX);
+            let num4 = rng.gen_range(num1+1..MAX);
+            let num5 = rng.gen_range(num2+1..MAX);
+            let num6 = rng.gen_range(num3+1..MAX);
             res.push(format!("({},{},{});({},{},{})", num1.to_string(), num2.to_string(), 
             num3.to_string(), num4.to_string(), num5.to_string(), num6.to_string()));
         }
