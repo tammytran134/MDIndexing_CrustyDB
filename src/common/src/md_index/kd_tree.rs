@@ -8,10 +8,10 @@ use crate::Field::{IntField, StringField};
 
 #[derive(Clone, PartialEq, PartialOrd)]
 pub struct KdTree {
-    pub dim: usize,
-    pub arr: Vec<Option<Vec<Field>>>,
-    pub idx_fields: Vec<usize>,
-    pub total_dim: usize,
+    pub dim: usize, // dimension of the tree, i.e: k
+    pub arr: Vec<Option<Vec<Field>>>, // the tree represented as an array
+    pub idx_fields: Vec<usize>, // vector of indeces of attributes that are used for the index
+    pub total_dim: usize, // total number of attributes of each data point
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
